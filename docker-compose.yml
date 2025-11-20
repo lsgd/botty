@@ -1,0 +1,25 @@
+services:
+  whatsapp-bot:
+    build: .
+    container_name: whatsapp-transcription-bot
+    restart: unless-stopped
+    volumes:
+      # Persist WhatsApp session and configuration
+      - ./data:/app/data
+    environment:
+      # OpenAI API Key (required)
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+
+      # Authorized phone numbers (comma-separated, required)
+      # Format: +1234567890,+0987654321
+      - AUTHORIZED_NUMBERS=${AUTHORIZED_NUMBERS}
+
+      # Bot language (en or de, optional, defaults to en)
+      - BOT_LANGUAGE=${BOT_LANGUAGE:-en}
+    stdin_open: true
+    tty: true
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

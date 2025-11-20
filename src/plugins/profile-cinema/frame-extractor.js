@@ -1,0 +1,67 @@
+import os from 'os';
+import path from 'path';
+import fs from 'fs/promises';
+import { randomUUID } from 'crypto';
+import ffmpeg from 'ffmpeg-static';
+import { runProcess } from './process-utils.js';
+
+const ffmpegPath = typeof ffmpeg === 'string' ? ffmpeg : ffmpeg?.path;
+
+const ATTEMPTS = [
+  { width: 512, quality: 3 },
+  { width: 420, quality: 5 },
+  { width: 360, quality: 7 },
+  { width: 280, quality: 9 },
+  { width: 220, quality: 12 }
+];
+
+export class FrameExtractor {
+  constructor(moviePath, maxBytes) {
+    this.moviePath = moviePath;
+    this.maxBytes = maxBytes;
+  }
+
+  async extract(timestampSeconds) {
+    const timestamp = Math.max(0, Number(timestampSeconds) || 0).toFixed(3);
+    let lastError;
+
+    for (const attempt of ATTEMPTS) {
+      const tempFile = path.join(os.tmpdir(), `profile-frame-${randomUUID()}.jpg`);
+      try {
+        await this.renderFrame(tempFile, timestamp, attempt.width, attempt.quality);
+        const stats = await fs.stat(tempFile);
+        if (stats.size <= this.maxBytes) {
+          return { filePath: tempFile, size: stats.size };
+        }
+        await fs.rm(tempFile, { force: true });
+      } catch (error) {
+        lastError = error;
+        await fs.rm(tempFile, { force: true });
+      }
+    }
+
+    throw lastError ?? new Error('Unable to create profile frame under size limit');
+  }
+
+  async renderFrame(outputPath, timestamp, width, quality) {
+    const scaleExpr = `scale=min(${width},iw):-2`;
+    const args = [
+      '-hide_banner',
+      '-loglevel', 'error',
+      '-ss', timestamp,
+      '-i', this.moviePath,
+      '-frames:v', '1',
+      '-vf', `${scaleExpr}`,
+      '-q:v', String(quality),
+      '-y',
+      outputPath
+    ];
+
+    await runProcess(ffmpegPath, args);
+  }
+
+  async cleanup(filePath) {
+    if (!filePath) return;
+    await fs.rm(filePath, { force: true });
+  }
+}
