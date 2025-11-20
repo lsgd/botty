@@ -46,11 +46,9 @@ RUN npm install --production
 # Copy application code
 COPY src ./src
 
-# Create data directory
-RUN mkdir -p /app/data/temp
-
 # Run as non-root user for security
 RUN useradd -m botuser && \
+    mkdir -p /app/data/temp && \
     chown -R botuser:botuser /app
 USER botuser
 
