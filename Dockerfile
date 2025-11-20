@@ -47,9 +47,7 @@ RUN npm install --production
 COPY src ./src
 
 # Run as non-root user for security
-RUN useradd -m botuser && \
-    mkdir -p /app/data/temp && \
-    chown -R botuser:botuser /app
+RUN useradd -m botuser
 USER botuser
 
 # Start the bot
