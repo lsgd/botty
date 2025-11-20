@@ -52,7 +52,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ secrets.DOCKERHUB_USERNAME }}/whatsapp-transcription-bot
+          images: ${{ secrets.DOCKERHUB_USERNAME }}/whatsapp-botty
           tags: |
             type=raw,value=latest
             type=sha
