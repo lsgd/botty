@@ -46,9 +46,18 @@ RUN npm install --production
 # Copy application code
 COPY src ./src
 
-# Run as non-root user for security
-RUN useradd -m botuser
+# Copy entrypoint script
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Run as non-root user for security but don't switch yet
+RUN useradd -m -u 1000 botuser
+
+# Switch to non-root user
 USER botuser
+
+# Set entrypoint
+ENTRYPOINT ["docker-entrypoint.sh"]
 
 # Start the bot
 CMD ["npm", "start"]
