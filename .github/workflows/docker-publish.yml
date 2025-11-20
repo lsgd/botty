@@ -37,7 +37,7 @@ jobs:
             ${{ runner.os }}-npm-
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install --omit=dev
 
       - name: Lint & Test
         run: npm test
