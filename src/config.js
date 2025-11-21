@@ -4,6 +4,21 @@ import { dirname, join } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+// Get system timezone if BOT_TIMEZONE is not set
+const getTimezone = () => {
+  if (process.env.BOT_TIMEZONE) {
+    return process.env.BOT_TIMEZONE;
+  }
+  
+  // Try to get system timezone
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone;
+  } catch (error) {
+    console.warn('⚠️  Could not detect system timezone, defaulting to Europe/Berlin');
+    return 'Europe/Berlin';
+  }
+};
+
 export const config = {
   // OpenAI Configuration
   openai: {
@@ -41,7 +56,7 @@ export const config = {
   },
 
   scheduler: {
-    timezone: process.env.BOT_TIMEZONE || 'Europe/Berlin',
+    timezone: getTimezone(),
     birthday: {
       checkHour: Number.parseInt(process.env.BIRTHDAY_CHECK_HOUR || '6', 10),
       windowStartHour: Number.parseInt(process.env.BIRTHDAY_WINDOW_START || '7', 10),

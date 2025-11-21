@@ -16,6 +16,10 @@ services:
 
       # Bot language (en or de, optional, defaults to en)
       - BOT_LANGUAGE=${BOT_LANGUAGE:-en}
+
+      # Timezone (optional, IANA timezone identifier)
+      # If not set, uses the system timezone
+      - BOT_TIMEZONE=${BOT_TIMEZONE:-}
     stdin_open: true
     tty: true
     logging:

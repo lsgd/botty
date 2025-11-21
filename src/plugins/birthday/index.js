@@ -66,9 +66,11 @@ export class BirthdayPlugin {
    * @returns {boolean}
    */
   shouldHandle(message) {
-    // Track all messages from authorized users
-    // We don't handle them, just track for birthday logic
-    dailyMessageTracker.recordMessage(message.from, message.author || message.from);
+    // Track messages from authorized users
+    // message.author is the actual sender in group chats
+    // message.from is the chat ID
+    const senderId = message.author || message.from;
+    dailyMessageTracker.recordMessage(message.from, senderId);
     return false; // Don't actively handle messages
   }
 

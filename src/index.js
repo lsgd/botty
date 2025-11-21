@@ -12,6 +12,14 @@ if (config.auth.authorizedNumbers.length === 0) {
   console.warn('⚠️  Example: AUTHORIZED_NUMBERS="+1234567890,+0987654321"');
 }
 
+// Print timezone information
+console.log(`🌍 Timezone: ${config.scheduler.timezone}`);
+if (process.env.BOT_TIMEZONE) {
+  console.log(`   (configured via BOT_TIMEZONE environment variable)`);
+} else {
+  console.log(`   (auto-detected from system)`);
+}
+
 // Create and initialize bot
 const bot = new WhatsAppBot();
 
