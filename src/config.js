@@ -81,7 +81,9 @@ export const config = {
   transcription: {
     maxFileSizeMB: 25,
     timeoutMs: 300000, // 5 minutes
-    defaultLanguage: null // Auto-detect
+    defaultLanguage: null, // Auto-detect
+    cleanupIntervalMs: 3600000, // 1 hour
+    maxAgeMs: 2592000000 // 30 days
   },
 
   // Bot Language (for messages)

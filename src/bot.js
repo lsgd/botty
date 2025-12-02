@@ -7,6 +7,7 @@ import { i18n } from './utils/i18n.js';
 import { pluginManager } from './plugins/plugin-manager.js';
 import { CommandHandler } from './commands/command-handler.js';
 import { TranscriptionPlugin } from './plugins/transcription/index.js';
+import { messageTracker } from './plugins/transcription/message-tracker.js';
 import { BirthdayPlugin } from './plugins/birthday/index.js';
 import { ReminderPlugin } from './plugins/reminder/index.js';
 import { ProfileCinemaPlugin } from './plugins/profile-cinema/index.js';
@@ -15,6 +16,7 @@ export class WhatsAppBot {
   constructor() {
     this.client = null;
     this.isReady = false;
+    this.transcriptionPlugin = null;
     this.birthdayPlugin = null;
     this.reminderPlugin = null;
     this.profileCinemaPlugin = null;
@@ -67,6 +69,11 @@ export class WhatsAppBot {
       this.isReady = true;
       this.logBotInfo();
 
+      // Initialize transcription plugin (needs client to be ready)
+      if (this.transcriptionPlugin) {
+        await this.transcriptionPlugin.initialize(this.client);
+      }
+
       // Initialize birthday plugin (needs client to be ready)
       if (this.birthdayPlugin) {
         await this.birthdayPlugin.initialize(this.client);
@@ -112,8 +119,8 @@ export class WhatsAppBot {
     console.log('📦 Registering plugins...');
 
     // Register transcription plugin
-    const transcriptionPlugin = new TranscriptionPlugin();
-    pluginManager.register(transcriptionPlugin);
+    this.transcriptionPlugin = new TranscriptionPlugin();
+    pluginManager.register(this.transcriptionPlugin);
 
     // Register birthday plugin (will be initialized when client is ready)
     this.birthdayPlugin = new BirthdayPlugin();
@@ -181,6 +188,9 @@ export class WhatsAppBot {
     if (this.profileCinemaPlugin) {
       await this.profileCinemaPlugin.destroy();
     }
+
+    // Cleanup message tracker
+    messageTracker.destroy();
 
     if (this.client) {
       await this.client.destroy();

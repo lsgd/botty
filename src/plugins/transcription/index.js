@@ -152,4 +152,12 @@ export class TranscriptionPlugin {
       await message.reply(i18n.t('transcribeFailed'));
     }
   }
+
+  async initialize(client) {
+    console.log('[TranscriptionPlugin] Setting up revoke event listener');
+    client.on('message_revoke_everyone', async (message) => {
+      console.log('[TranscriptionPlugin] Revoke event triggered');
+      await messageTracker.handleRevoke(message, client);
+    });
+  }
 }
