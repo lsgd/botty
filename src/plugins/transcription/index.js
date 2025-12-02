@@ -145,8 +145,8 @@ export class TranscriptionPlugin {
 
       console.log(`[TranscriptionPlugin] Saved audio to ${tempFilePath}`);
 
-      // Use message tracker to handle transcription (handles race conditions)
-      await messageTracker.transcribe(message.id._serialized, message, tempFilePath);
+       // Use message tracker to handle transcription (handles race conditions)
+       await messageTracker.transcribe(message.id._serialized, message, tempFilePath, this.client);
     } catch (error) {
       console.error('[TranscriptionPlugin] Error transcribing message:', error);
       await message.reply(i18n.t('transcribeFailed'));
@@ -154,6 +154,7 @@ export class TranscriptionPlugin {
   }
 
   async initialize(client) {
+    this.client = client;
     console.log('[TranscriptionPlugin] Setting up revoke event listener');
     client.on('message_revoke_everyone', async (message) => {
       console.log('[TranscriptionPlugin] Revoke event triggered');

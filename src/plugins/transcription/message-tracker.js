@@ -23,7 +23,7 @@ export class MessageTracker {
     return this.completed.has(messageId);
   }
 
-  async transcribe(messageId, message, audioPath) {
+  async transcribe(messageId, message, audioPath, client) {
     // Check if already processed or processing
     if (this.isCompleted(messageId)) {
       console.log(`[MessageTracker] Message ${messageId} already transcribed, skipping`);
@@ -62,11 +62,19 @@ export class MessageTracker {
       // By quoting, each transcription is tied to its source message
       const replyMsg = await message.reply(i18n.t('transcriptionResult', transcriptionText));
 
-      // Store transcription message for potential deletion
-      this.transcriptionMessages.set(messageId, {
-        transcriptionMessage: replyMsg,
-        timestamp: Date.now()
-      });
+       // Store transcription message for potential deletion
+       this.transcriptionMessages.set(messageId, {
+         transcriptionMessage: replyMsg,
+         timestamp: Date.now()
+       });
+
+       // Mark the chat as unread to notify the user
+       try {
+         const chat = await client.getChatById(message.id.remote);
+         await chat.markUnread();
+       } catch (error) {
+         console.error(`[MessageTracker] Failed to mark chat as unread:`, error);
+       }
 
       // Mark as completed
       this.completed.add(messageId);
