@@ -5,7 +5,7 @@ import { config } from '../../config.js';
 export class MessageTracker {
   constructor() {
     this.queues = new Map(); // chatId -> Promise (tail of the queue)
-    this.pending = new Set(); // messageId (currently processing or queued)
+    this.pending = new Map(); // messageId -> { timestamp, promise, message }
     this.completed = new Set(); // messageId -> to avoid duplicates
     this.transcriptionMessages = new Map(); // audioMessageId -> { transcriptionMessage, timestamp }
     this.cancelled = new Set(); // messageIds that should not be transcribed
@@ -36,7 +36,6 @@ export class MessageTracker {
       return;
     }
 
-    this.pending.add(messageId);
     const chatId = message.from;
 
     // Initialize queue for this chat if it doesn't exist
@@ -65,9 +64,21 @@ export class MessageTracker {
         // Wait for completion
         const transcriptionText = await promise;
 
+        // Check if transcription was cancelled during processing
+        if (this.cancelled.has(messageId)) {
+          console.log(`[MessageTracker] Transcription for ${messageId} was cancelled, skipping reply`);
+          throw new Error('Transcription cancelled');
+        }
+
         // Reply to the original message (solves race condition!)
         // By quoting, each transcription is tied to its source message
-        await message.reply(i18n.t('transcriptionResult', transcriptionText));
+        const replyMsg = await message.reply(i18n.t('transcriptionResult', transcriptionText));
+
+        // Store transcription message for potential deletion
+        this.transcriptionMessages.set(messageId, {
+          transcriptionMessage: replyMsg,
+          timestamp: Date.now()
+        });
 
         // Mark as unread
         try {
@@ -76,6 +87,8 @@ export class MessageTracker {
         } catch (chatError) {
           console.error(`[MessageTracker] Failed to mark chat as unread:`, chatError);
         }
+        // Mark as completed
+        this.completed.add(messageId);
 
         console.log(`[MessageTracker] Successfully transcribed ${messageId}`);
       } catch (error) {
@@ -110,12 +123,42 @@ export class MessageTracker {
   getStatus() {
     return {
       pending: this.pending.size,
-      completed: this.completed.size
+      completed: this.completed.size,
+      transcriptionMessages: this.transcriptionMessages.size,
+      cancelled: this.cancelled.size
     };
+  }
+
+
+  // Clean up old transcription message mappings
+  cleanupTranscriptions() {
+    const now = Date.now();
+    const maxAge = config.transcription.maxAgeMs;
+    const toRemove = [];
+
+    for (const [audioId, entry] of this.transcriptionMessages) {
+      if (now - entry.timestamp > maxAge) {
+        toRemove.push(audioId);
+      }
+    }
+
+    toRemove.forEach(audioId => {
+      this.transcriptionMessages.delete(audioId);
+      console.log(`[MessageTracker] Cleaned up expired transcription mapping for ${audioId}`);
+    });
+
+    if (toRemove.length > 0) {
+      console.log(`[MessageTracker] Cleaned up ${toRemove.length} expired transcription mappings`);
+    }
   }
 
   // Clean up old completed entries (optional, for memory management)
   cleanup(maxAge = 3600000) { // Default 1 hour
+    const now = Date.now();
+    const oldCompleted = Array.from(this.completed).filter(id => {
+      // Simple age-based cleanup - you might want to store timestamps
+      return false; // Keep all for now
+    });
     // For a production system, you'd want to track completion timestamps
     // and remove entries older than maxAge
     // Also clean up empty queues
