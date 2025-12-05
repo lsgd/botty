@@ -79,7 +79,7 @@ export class ProfileCinemaPlugin {
       '',
       `Timestamp: ${timestamp}`,
       `Messages processed: ${status.totalMessages}`,
-      `Interval: every ${status.messageInterval} message(s)`,
+      `Update delay: ${status.messageInterval}-${status.messageInterval * 1.5}s (debounce)`,
       `Status: ${status.completed ? 'Completed – holding final frame' : 'In progress'}`,
       `Last timestamp: ${timestamp}`
     ].join('\n');

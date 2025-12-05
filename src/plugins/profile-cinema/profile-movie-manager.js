@@ -14,6 +14,7 @@ export class ProfileMovieManager {
     this.keyframes = [];
     this.ready = false;
     this.updateQueue = Promise.resolve();
+    this.updateTimeout = null;
   }
 
   async initialize() {
@@ -45,10 +46,21 @@ export class ProfileMovieManager {
       return;
     }
 
-    const shouldAdvance = this.stateStore.registerMessage(this.options.messageInterval);
-    if (shouldAdvance) {
-      this.queueFrameAdvance();
+    this.stateStore.registerMessage(this.options.messageInterval);
+
+    if (this.updateTimeout) {
+      clearTimeout(this.updateTimeout);
     }
+
+    const interval = Math.max(1, Number(this.options.messageInterval) || 10);
+    const minDelay = interval * 1000;
+    const maxDelay = minDelay * 1.5;
+    const delay = Math.floor(minDelay + Math.random() * (maxDelay - minDelay));
+
+    this.updateTimeout = setTimeout(() => {
+      this.queueFrameAdvance();
+      this.updateTimeout = null;
+    }, delay);
 
     await this.stateStore.save();
   }
@@ -94,6 +106,9 @@ export class ProfileMovieManager {
   }
 
   async destroy() {
+    if (this.updateTimeout) {
+      clearTimeout(this.updateTimeout);
+    }
     await this.updateQueue;
   }
 }
