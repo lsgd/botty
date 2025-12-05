@@ -167,29 +167,14 @@ export class MessageTracker {
   // Handle message revocation
   async handleRevoke(message, client) {
     try {
-      console.log(`[MessageTracker] Received revoke event for message:`, {
-        id: message.id?._serialized,
-        type: message.type,
-        body: message.body?.substring(0, 50),
-        from: message.from,
-        hasMedia: message.hasMedia,
-        rawData: message.rawData,
-        rawDataId: message.rawData?.id,
-        rawDataKeyId: message.rawData?.key?.id,
-        rawDataKeyRemoteJid: message.rawData?.key?.remoteJid
-      });
-
       // For revoked messages, get the original message ID from protocolMessageKey
       let messageId = message.id._serialized;
       if (message.type === 'revoked' && message.rawData?.protocolMessageKey?._serialized) {
         messageId = message.rawData.protocolMessageKey._serialized;
-        console.log(`[MessageTracker] Using original message ID from protocolMessageKey: ${messageId}`);
       }
-      console.log(`[MessageTracker] Processing revoke for message ${messageId} (type: ${message.type})`);
 
       // Check if transcription is in progress
       if (this.isProcessing(messageId)) {
-        console.log(`[MessageTracker] Cancelling in -progress transcription for revoked message ${messageId} `);
         this.cancelled.add(messageId);
         return;
       }
@@ -198,22 +183,15 @@ export class MessageTracker {
       if (this.isCompleted(messageId)) {
         const entry = this.transcriptionMessages.get(messageId);
         if (entry) {
-          console.log(`[MessageTracker] Found transcription entry for ${messageId}: `, entry.transcriptionMessage.id._serialized);
           try {
-            console.log(`[MessageTracker] Deleting transcription message ${entry.transcriptionMessage.id._serialized} `);
             await entry.transcriptionMessage.delete(true); // Delete for everyone
-            console.log(`[MessageTracker] Deleted transcription for revoked message ${messageId} `);
             this.transcriptionMessages.delete(messageId);
           } catch (deleteError) {
-            console.error(`[MessageTracker] Failed to delete transcription: `, deleteError);
+            console.error(`[MessageTracker] Failed to delete transcription:`, deleteError);
             // Still remove from map even if delete failed
             this.transcriptionMessages.delete(messageId);
           }
-        } else {
-          console.log(`[MessageTracker] No transcription entry found for completed message ${messageId} `);
         }
-      } else {
-        console.log(`[MessageTracker] Message ${messageId} is not completed, no transcription to delete `);
       }
     } catch (error) {
       console.error('[MessageTracker] Error handling message revocation:', error);
@@ -228,61 +206,6 @@ export class MessageTracker {
     }
   }
 
-  // Handle message revocation
-  async handleRevoke(message, client) {
-    try {
-      console.log(`[MessageTracker] Received revoke event for message:`, {
-        id: message.id?._serialized,
-        type: message.type,
-        body: message.body?.substring(0, 50),
-        from: message.from,
-        hasMedia: message.hasMedia,
-        rawData: message.rawData,
-        rawDataId: message.rawData?.id,
-        rawDataKeyId: message.rawData?.key?.id,
-        rawDataKeyRemoteJid: message.rawData?.key?.remoteJid
-      });
-
-      // For revoked messages, get the original message ID from protocolMessageKey
-      let messageId = message.id._serialized;
-      if (message.type === 'revoked' && message.rawData?.protocolMessageKey?._serialized) {
-        messageId = message.rawData.protocolMessageKey._serialized;
-        console.log(`[MessageTracker] Using original message ID from protocolMessageKey: ${messageId}`);
-      }
-      console.log(`[MessageTracker] Processing revoke for message ${messageId} (type: ${message.type})`);
-
-      // Check if transcription is in progress
-      if (this.isProcessing(messageId)) {
-        console.log(`[MessageTracker] Cancelling in-progress transcription for revoked message ${messageId}`);
-        this.cancelled.add(messageId);
-        return;
-      }
-
-      // Check if transcription exists and delete it
-      if (this.isCompleted(messageId)) {
-        const entry = this.transcriptionMessages.get(messageId);
-        if (entry) {
-          console.log(`[MessageTracker] Found transcription entry for ${messageId}:`, entry.transcriptionMessage.id._serialized);
-          try {
-            console.log(`[MessageTracker] Deleting transcription message ${entry.transcriptionMessage.id._serialized}`);
-            await entry.transcriptionMessage.delete(true); // Delete for everyone
-            console.log(`[MessageTracker] Deleted transcription for revoked message ${messageId}`);
-            this.transcriptionMessages.delete(messageId);
-          } catch (deleteError) {
-            console.error(`[MessageTracker] Failed to delete transcription:`, deleteError);
-            // Still remove from map even if delete failed
-            this.transcriptionMessages.delete(messageId);
-          }
-        } else {
-          console.log(`[MessageTracker] No transcription entry found for completed message ${messageId}`);
-        }
-      } else {
-        console.log(`[MessageTracker] Message ${messageId} is not completed, no transcription to delete`);
-      }
-    } catch (error) {
-      console.error('[MessageTracker] Error handling message revocation:', error);
-    }
-  }
 
   // Clean up resources
   destroy() {
