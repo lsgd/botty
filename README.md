@@ -220,8 +220,8 @@ whatsapp-bot/
 |----------|----------|-------------|---------|
 | `OPENAI_API_KEY` | Yes | OpenAI API key | `sk-proj-...` |
 | `AUTHORIZED_NUMBERS` | Yes | Comma-separated phone numbers with country code | `+1234567890,+0987654321` |
-| `BOT_LANGUAGE` | No | Bot message language (`en` or `de`) | `en` (default) |
-| `BOT_TIMEZONE` | No | IANA timezone used for all schedulers | `Europe/Berlin` |
+| `BOT_LANGUAGE` | No | Bot message language (`en`, `de`, or `it`) | `en` (default) |
+| `BOT_TIMEZONE` | No | IANA timezone identifier for all scheduling. If not set, uses system timezone | `Europe/Zurich`, `America/New_York` |
 | `BIRTHDAY_CHECK_HOUR` | No | Hour (0-23) when the birthday CSV reload + scheduling runs | `6` |
 | `BIRTHDAY_WINDOW_START` | No | Start hour for the birthday send window | `7` |
 | `BIRTHDAY_WINDOW_END` | No | End hour for the birthday send window | `9` |
@@ -233,6 +233,31 @@ whatsapp-bot/
 | `PROFILE_FRAME_MAX_KB` | No | Maximum allowed size for the generated JPEG (defaults to 100 KB) | `90` |
 
 Both schedulers run with `node-cron` in the configured timezone, persist their queue state to `data/`, and reschedule anything missed during restarts so reminders and birthday wishes still go out even if the container was offline earlier.
+
+### Timezone Configuration
+
+The bot uses a single timezone setting (`BOT_TIMEZONE`) for all scheduling operations (birthdays and reminders). This ensures consistency across all time-based features.
+
+**Behavior:**
+- If `BOT_TIMEZONE` is set in the environment, that timezone is used
+- If not set, the bot auto-detects the system timezone using `Intl.DateTimeFormat()`
+- Falls back to `Europe/Berlin` if timezone detection fails
+- The selected timezone is printed at startup along with its source
+
+**Example startup output:**
+```
+🌍 Timezone: Europe/Zurich
+   (configured via BOT_TIMEZONE environment variable)
+```
+
+or:
+
+```
+🌍 Timezone: America/New_York
+   (auto-detected from system)
+```
+
+**Why this matters:** All date-based operations (birthday tracking, reminder scheduling, daily message tracking) use this timezone to determine "today" and when to trigger events. If you're in `Europe/Zurich` but the bot uses `America/New_York`, birthday wishes might arrive at unexpected times.
 
 ### Phone Number Format
 
@@ -377,8 +402,29 @@ The `MessageTracker` class ensures:
 ### Security
 - Authorization middleware checks every command
 - Non-privileged operations (transcription) work for authorized users only
-- Docker runs as non-root user
+- Container runs as root when volume is owned by root on host (for permission compatibility)
 - No secrets in logs
+
+### Docker Deployment
+
+**Volume Permissions:**
+The container is designed to work with host-mounted volumes. If your host directories (e.g., `/opt/data/whatsapp/data`) are owned by root, the container will run as root to ensure proper file access. This is the recommended configuration for production deployments where the host filesystem is managed by root.
+
+**Directory Structure:**
+The container automatically creates necessary subdirectories on startup via the entrypoint script:
+- `/app/data/temp` - Temporary audio files
+- `/app/data/.wwebjs_auth` - WhatsApp session data
+- `/app/data/.wwebjs_cache` - WhatsApp cache
+
+**Environment Variables:**
+Pass environment variables through docker-compose.yml or directly with `docker run -e`:
+```yaml
+environment:
+  - OPENAI_API_KEY=${OPENAI_API_KEY}
+  - AUTHORIZED_NUMBERS=${AUTHORIZED_NUMBERS}
+  - BOT_LANGUAGE=${BOT_LANGUAGE:-en}
+  - BOT_TIMEZONE=${BOT_TIMEZONE:-}
+```
 
 ## Troubleshooting
 
@@ -400,6 +446,47 @@ The `MessageTracker` class ensures:
 - Verify authorized number format
 - Check command syntax (must start with `!`)
 
+### Permission Denied Errors in Container
+If you see `EACCES: permission denied, mkdir '/app/data/...'` errors:
+
+**Cause:** Mismatch between container user and host volume ownership.
+
+**Solution:** The container runs as root by default to match root-owned host directories. If your host directories are owned by a different user:
+
+1. **Option 1 (Recommended):** Run container as your host user ID:
+   ```yaml
+   services:
+     whatsapp-bot:
+       user: "${UID:-1000}:${GID:-1000}"
+   ```
+   Then start with: `UID=$(id -u) GID=$(id -g) docker-compose up`
+
+2. **Option 2:** Ensure host directory has proper permissions:
+   ```bash
+   sudo chown -R 1000:1000 /path/to/data
+   ```
+
+3. **Option 3:** Use relaxed permissions (less secure):
+   ```bash
+   chmod -R 777 /path/to/data
+   ```
+
+### Birthday Wishes Sent Despite Message at Midnight
+If you sent a message just after midnight (00:00-01:00) but the bot still sent birthday wishes:
+
+**Cause:** The bot uses the configured `BOT_TIMEZONE` to determine "today". A message at 00:03 in your local time might be in a different day in the bot's timezone.
+
+**Solution:** Ensure `BOT_TIMEZONE` matches your local timezone:
+```env
+BOT_TIMEZONE=Europe/Zurich
+```
+
+Check the timezone at startup in the logs:
+```
+🌍 Timezone: Europe/Zurich
+   (configured via BOT_TIMEZONE environment variable)
+```
+
 ## Cost Estimation
 
 GPT-4o-transcribe pricing: **$0.006 per minute** of audio
@@ -413,13 +500,31 @@ Very affordable for personal/small team use!
 
 ## Recent Updates
 
+### Version 1.1.0 (2025-11-21)
+
+**New Features:**
+- ✅ Timezone configuration via `BOT_TIMEZONE` environment variable
+- ✅ Auto-detection of system timezone when `BOT_TIMEZONE` not set
+- ✅ Timezone information displayed at startup with source
+- ✅ Docker entrypoint script ensures data directories exist
+
+**Improvements:**
+- Fixed container permission issues with root-owned volumes
+- Removed non-root user requirement for better volume compatibility
+- Clarified birthday message tracking logic
+- Updated documentation with timezone and Docker deployment details
+
+**Configuration:**
+- Added `BOT_TIMEZONE` to `.env.example` and `docker-compose.yml`
+- Consistent timezone handling across all scheduler plugins
+
 ### Version 1.0.0
 
 **Features:**
 - ✅ Voice message transcription with GPT-4o-transcribe
 - ✅ AI-generated birthday wishes with GPT-4o
 - ✅ Birthday message testing with `!birthdays-test`
-- ✅ Multi-language support (EN/DE)
+- ✅ Multi-language support (EN/DE/IT)
 - ✅ Comprehensive test suite
 - ✅ Docker deployment
 

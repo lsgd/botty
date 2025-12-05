@@ -6,6 +6,7 @@ services:
     volumes:
       # Persist WhatsApp session and configuration
       - ./data:/app/data
+    env_file: .env
     environment:
       # OpenAI API Key (required)
       - OPENAI_API_KEY=${OPENAI_API_KEY}
