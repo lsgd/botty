@@ -4,6 +4,7 @@ import fs from 'fs/promises';
 import { randomUUID } from 'crypto';
 import ffmpeg from 'ffmpeg-static';
 import { runProcess } from './process-utils.js';
+import ffprobe from 'ffprobe-static';
 
 const ffmpegPath = typeof ffmpeg === 'string' ? ffmpeg : ffmpeg?.path;
 
@@ -64,4 +65,29 @@ export class FrameExtractor {
     if (!filePath) return;
     await fs.rm(filePath, { force: true });
   }
+}
+
+const ffprobePath = typeof ffprobe === 'string' ? ffprobe : ffprobe?.path;
+
+export async function ensureReadableMovie(moviePath) {
+  await fs.access(moviePath);
+}
+
+export async function getMovieDuration(moviePath) {
+  await ensureReadableMovie(moviePath);
+
+  const args = [
+    '-hide_banner',
+    '-loglevel', 'error',
+    '-select_streams', 'v:0',
+    '-show_entries', 'format=duration',
+    '-of', 'default=noprint_wrappers=1:nokey=1',
+    moviePath
+  ];
+
+  const stdout = await runProcess(ffprobePath, args);
+  const lines = stdout.split('\n').map(l => l.trim()).filter(Boolean);
+  const duration = Number.parseFloat(lines[0]);
+
+  return duration;
 }

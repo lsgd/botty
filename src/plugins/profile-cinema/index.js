@@ -59,10 +59,6 @@ export class ProfileCinemaPlugin {
     }
 
     const status = this.manager.getStatus();
-    if (!status) {
-      await message.reply('⏳ Profile Cinema is still preparing keyframes...');
-      return true;
-    }
 
     const text = this.buildProgressText(status);
     await message.reply(text);
@@ -70,18 +66,18 @@ export class ProfileCinemaPlugin {
   }
 
   buildProgressText(status) {
-    const percentage = status.totalKeyframes > 1
-      ? Math.round((status.currentFrame / (status.totalKeyframes - 1)) * 100)
+    const percentage = status.duration > 1
+      ? Math.round((status.currentTimeSeconds / status.duration) * 100)
       : 100;
 
-    const timestamp = typeof status.lastTimestampSeconds === 'number'
-      ? this.formatTimestamp(status.lastTimestampSeconds)
+    const timestamp = status.currentTimeSeconds > 0
+      ? this.formatTimestamp(status.currentTimeSeconds)
       : 'Not yet started';
 
     return [
       '🎬 *Profile Cinema*',
       '',
-      `Frame: ${status.currentFrame + 1}/${status.totalKeyframes} (${percentage}%)`,
+      `Timestamp: ${timestamp}`,
       `Messages processed: ${status.totalMessages}`,
       `Interval: every ${status.messageInterval} message(s)`,
       `Status: ${status.completed ? 'Completed – holding final frame' : 'In progress'}`,

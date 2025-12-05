@@ -1,7 +1,6 @@
 import fs from 'fs/promises';
 import pkg from 'whatsapp-web.js';
-import { FrameExtractor } from './frame-extractor.js';
-import { detectKeyframes, ensureReadableMovie } from './keyframe-detector.js';
+import { ensureReadableMovie, getMovieDuration, FrameExtractor } from './frame-extractor.js';
 import { ProfileMovieState } from './profile-movie-state.js';
 
 const { MessageMedia } = pkg;
@@ -28,12 +27,12 @@ export class ProfileMovieManager {
       console.log('[ProfileCinema] Movie file changed. Restarting progression.');
     }
 
-    this.keyframes = await detectKeyframes(this.options.moviePath);
-    if (this.keyframes.length === 0) {
-      throw new Error('ProfileCinema: No keyframes found in movie');
+    this.duration = await getMovieDuration(this.options.moviePath);
+    if (this.duration === 0) {
+      throw new Error('ProfileCinema: No duration found in movie');
     }
 
-    if (this.stateStore.isComplete(this.keyframes.length)) {
+    if (this.stateStore.isComplete(this.duration)) {
       console.log('[ProfileCinema] Movie already finished. Sticking to last frame.');
     }
 
@@ -63,29 +62,25 @@ export class ProfileMovieManager {
   }
 
   async advanceFrameSafely() {
-    if (this.stateStore.isComplete(this.keyframes.length)) {
+    if (this.stateStore.isComplete(this.duration)) {
       return;
     }
 
-    const currentIndex = this.stateStore.state.currentKeyframeIndex;
-    const nextIndex = Math.min(currentIndex + 1, this.keyframes.length - 1);
-    if (nextIndex === currentIndex) {
-      return;
-    }
+    const currentTimeSeconds = this.stateStore.state.currentTimeSeconds;
+    const nextTimeSeconds = Math.min(currentTimeSeconds + 1, this.duration);
 
-    const target = this.keyframes[nextIndex];
-    const frame = await this.frameExtractor.extract(target.time ?? target);
+    const frame = await this.frameExtractor.extract(nextTimeSeconds);
     try {
-      const media = await MessageMedia.fromFilePath(frame.filePath);
+      const media = MessageMedia.fromFilePath(frame.filePath);
       const selfId = this.client.info?.wid?._serialized || this.client.info?.me?._serialized;
       if (!selfId) {
         throw new Error('Unable to resolve self WhatsApp ID');
       }
 
       await this.client.setProfilePicture(selfId, media);
-      this.stateStore.advanceTo(nextIndex, target.time ?? target);
+      this.stateStore.advanceTo(nextTimeSeconds);
       await this.stateStore.save();
-      console.log(`[ProfileCinema] Updated profile to frame ${nextIndex + 1}/${this.keyframes.length}`);
+      console.log(`[ProfileCinema] Updated profile to second ${nextTimeSeconds}/${this.duration}`);
     } finally {
       await this.frameExtractor.cleanup(frame.filePath);
     }
