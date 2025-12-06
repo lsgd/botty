@@ -26,8 +26,9 @@ export class FrameExtractor {
     const timestamp = Math.max(0, Number(timestampSeconds) || 0).toFixed(3);
     let lastError;
 
+    const tempFile = path.join(os.tmpdir(), `profile-frame-${randomUUID()}.jpg`);
+
     for (const attempt of ATTEMPTS) {
-      const tempFile = path.join(os.tmpdir(), `profile-frame-${randomUUID()}.jpg`);
       try {
         await this.renderFrame(tempFile, timestamp, attempt.width, attempt.quality);
         const stats = await fs.stat(tempFile);
@@ -45,7 +46,7 @@ export class FrameExtractor {
   }
 
   async renderFrame(outputPath, timestamp, width, quality) {
-    const scaleExpr = `scale=min(${width},iw):-2`;
+    const scaleExpr = `scale=min(${width}\\,iw):-2`;
     const args = [
       '-hide_banner',
       '-loglevel', 'error',
@@ -54,11 +55,14 @@ export class FrameExtractor {
       '-frames:v', '1',
       '-vf', `${scaleExpr}`,
       '-q:v', String(quality),
+      '-update', '1',
       '-y',
       outputPath
     ];
 
-    await runProcess(ffmpegPath, args);
+    await runProcess(ffmpegPath, args, {
+      onStderr: (data) => console.log(`[FFmpeg] ${data}`)
+    });
   }
 
   async cleanup(filePath) {
@@ -85,6 +89,7 @@ export async function getMovieDuration(moviePath) {
     moviePath
   ];
 
+  console.log('[FrameExtractor] Executing:', ffprobePath, args.join(' '));
   const stdout = await runProcess(ffprobePath, args);
   const lines = stdout.split('\n').map(l => l.trim()).filter(Boolean);
   const duration = Number.parseFloat(lines[0]);

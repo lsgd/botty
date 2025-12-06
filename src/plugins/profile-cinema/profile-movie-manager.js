@@ -42,7 +42,7 @@ export class ProfileMovieManager {
   }
 
   async handleIncomingMessage(message) {
-    if (!this.ready || message.fromMe) {
+    if (!this.ready) {
       return;
     }
 
@@ -56,6 +56,8 @@ export class ProfileMovieManager {
     const minDelay = interval * 1000;
     const maxDelay = minDelay * 1.5;
     const delay = Math.floor(minDelay + Math.random() * (maxDelay - minDelay));
+
+    console.log(`[ProfileCinema] Scheduling update in ${(delay / 1000).toFixed(1)}s (Debounce)`);
 
     this.updateTimeout = setTimeout(() => {
       this.queueFrameAdvance();
@@ -75,6 +77,7 @@ export class ProfileMovieManager {
 
   async advanceFrameSafely() {
     if (this.stateStore.isComplete(this.duration)) {
+      console.log('[ProfileCinema] Movie completed. Skipping advance.');
       return;
     }
 
@@ -84,12 +87,15 @@ export class ProfileMovieManager {
     const frame = await this.frameExtractor.extract(nextTimeSeconds);
     try {
       const media = MessageMedia.fromFilePath(frame.filePath);
+      if (!media.mimetype) {
+        media.mimetype = 'image/jpeg';
+      }
       const selfId = this.client.info?.wid?._serialized || this.client.info?.me?._serialized;
       if (!selfId) {
         throw new Error('Unable to resolve self WhatsApp ID');
       }
 
-      await this.client.setProfilePicture(selfId, media);
+      await this.client.setProfilePicture(media);
       this.stateStore.advanceTo(nextTimeSeconds);
       await this.stateStore.save();
       console.log(`[ProfileCinema] Updated profile to second ${nextTimeSeconds}/${this.duration}`);
