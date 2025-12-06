@@ -66,8 +66,11 @@ export class CommandHandler {
     helpText += i18n.t('helpCommands');
     helpText += i18n.t('helpCommandHelp');
     helpText += i18n.currentLanguage === 'de'
-      ? '!chatid - Zeige die aktuelle Chat-ID\n\n'
-      : '!chatid - Get the current chat ID\n\n';
+      ? '!chatid - Zeige die aktuelle Chat-ID\n'
+      : '!chatid - Get the current chat ID\n';
+    helpText += i18n.currentLanguage === 'de'
+      ? '!plugins - Verwalte Plugins (An/Aus)\n\n'
+      : '!plugins - Manage plugins (On/Off)\n\n';
 
     // Group commands by plugin
     const pluginCommands = {};
