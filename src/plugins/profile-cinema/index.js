@@ -1,5 +1,6 @@
 import { config } from '../../config.js';
 import { AuthMiddleware } from '../../middleware/auth.js';
+import { storage } from '../../utils/storage.js';
 import { ProfileMovieManager } from './profile-movie-manager.js';
 
 export class ProfileCinemaPlugin {
@@ -33,11 +34,15 @@ export class ProfileCinemaPlugin {
   }
 
   shouldHandle() {
-    return this.enabled;
+    return this.isEnabled;
+  }
+
+  get isEnabled() {
+    return this.enabled && storage.isPluginEnabled(this.name);
   }
 
   async onMessage(message) {
-    if (!this.enabled || !this.manager) {
+    if (!this.isEnabled || !this.manager) {
       return;
     }
     await this.manager.handleIncomingMessage(message);
@@ -53,7 +58,7 @@ export class ProfileCinemaPlugin {
       return true;
     }
 
-    if (!this.enabled || !this.manager) {
+    if (!this.isEnabled || !this.manager) {
       await message.reply('❌ Profile Cinema is currently disabled.');
       return true;
     }

@@ -4,6 +4,7 @@ import { dirname } from 'path';
 import { i18n } from '../../utils/i18n.js';
 import { BirthdayScheduler } from './birthday-scheduler.js';
 import { dailyMessageTracker } from './message-tracker.js';
+import { storage } from '../../utils/storage.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -40,6 +41,10 @@ export class BirthdayPlugin {
     this.client = null;
   }
 
+  get isEnabled() {
+    return storage.isPluginEnabled(this.name);
+  }
+
   /**
    * Initialize the plugin with WhatsApp client
    * @param {Object} client - WhatsApp client
@@ -66,6 +71,7 @@ export class BirthdayPlugin {
    * @returns {boolean}
    */
   shouldHandle(message) {
+    if (!this.isEnabled) return false;
     // Track messages from authorized users
     // message.author is the actual sender in group chats
     // message.from is the chat ID
@@ -89,6 +95,8 @@ export class BirthdayPlugin {
    * @param {Object} message - WhatsApp message
    */
   async onCommand(command, args, message) {
+    if (!this.isEnabled) return;
+
     if (command === 'birthdays') {
       await this.handleStatusCommand(message);
     } else if (command === 'birthdays-reload') {

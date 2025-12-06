@@ -25,11 +25,25 @@ export class TranscriptionPlugin {
   }
 
   shouldHandle(message) {
+    if (!this.isEnabled) return false;
     // Handle voice messages automatically
     return message.hasMedia && message.type === 'ptt'; // ptt = push-to-talk (voice message)
   }
 
+  get isEnabled() {
+    return storage.isPluginEnabled(this.name);
+  }
+
   async onMessage(message) {
+    if (!this.isEnabled) {
+      return;
+    }
+
+    // Only process voice/audio messages
+    if (!['ptt', 'audio'].includes(message.type)) {
+      return;
+    }
+
     // Check if auto-transcription is enabled for this chat
     const chatId = message.from;
     const isEnabled = storage.isTranscriptionEnabled(chatId);
@@ -44,7 +58,11 @@ export class TranscriptionPlugin {
   }
 
   async onCommand(command, args, message) {
-    if (command === 't') {
+    if (!this.isEnabled) {
+      return;
+    }
+
+    if (command === config.transcription.commands.transcription) {
       await this.handleManualTranscription(message);
     } else if (command === 'transcription') {
       await this.handleTranscriptionSettings(args, message);
@@ -145,8 +163,8 @@ export class TranscriptionPlugin {
 
       console.log(`[TranscriptionPlugin] Saved audio to ${tempFilePath}`);
 
-       // Use message tracker to handle transcription (handles race conditions)
-       await messageTracker.transcribe(message.id._serialized, message, tempFilePath, this.client);
+      // Use message tracker to handle transcription (handles race conditions)
+      await messageTracker.transcribe(message.id._serialized, message, tempFilePath, this.client);
     } catch (error) {
       console.error('[TranscriptionPlugin] Error transcribing message:', error);
       await message.reply(i18n.t('transcribeFailed'));

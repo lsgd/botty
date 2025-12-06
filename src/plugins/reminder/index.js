@@ -1,5 +1,6 @@
 import { DateTime } from 'luxon';
 import { ReminderStorage } from './reminder-storage.js';
+import { storage } from '../../utils/storage.js';
 import { ReminderScheduler } from './reminder-scheduler.js';
 import { i18n } from '../../utils/i18n.js';
 import { config } from '../../config.js';
@@ -36,6 +37,10 @@ export class ReminderPlugin {
     this.scheduler = null;
   }
 
+  get isEnabled() {
+    return storage.isPluginEnabled(this.name);
+  }
+
   async initialize(client) {
     console.log('[ReminderPlugin] Initializing...');
 
@@ -56,6 +61,8 @@ export class ReminderPlugin {
   }
 
   async onCommand(command, args, message) {
+    if (!this.isEnabled) return false;
+
     if (command === 'remind') {
       await this.handleRemind(args, message);
       return true;
