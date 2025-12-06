@@ -89,7 +89,6 @@ export async function getMovieDuration(moviePath) {
     moviePath
   ];
 
-  console.log('[FrameExtractor] Executing:', ffprobePath, args.join(' '));
   const stdout = await runProcess(ffprobePath, args);
   const lines = stdout.split('\n').map(l => l.trim()).filter(Boolean);
   const duration = Number.parseFloat(lines[0]);

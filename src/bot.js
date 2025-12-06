@@ -20,6 +20,7 @@ export class WhatsAppBot {
     this.birthdayPlugin = null;
     this.reminderPlugin = null;
     this.profileCinemaPlugin = null;
+    this.startTime = Math.floor(Date.now() / 1000);
   }
 
   async initialize() {
@@ -141,6 +142,12 @@ export class WhatsAppBot {
     try {
       // Skip status messages
       if (message.isStatus) {
+        return;
+      }
+
+      // Ignore old messages
+      if (message.timestamp && message.timestamp < this.startTime) {
+        console.log(`⏳ Ignoring old message from ${message.from} (ts: ${message.timestamp} < start: ${this.startTime})`);
         return;
       }
 
