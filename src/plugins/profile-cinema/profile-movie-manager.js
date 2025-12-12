@@ -104,11 +104,18 @@ export class ProfileMovieManager {
     }
   }
 
+  async seekTo(timestampSeconds) {
+    const targetTime = Math.max(0, Math.min(timestampSeconds, this.duration));
+    this.stateStore.advanceTo(targetTime);
+    await this.stateStore.save();
+    console.log(`[ProfileCinema] Seeked to ${targetTime}s`);
+  }
+
   getStatus() {
     if (!this.ready) {
       return null;
     }
-    return this.stateStore.getStatus(this.keyframes.length, this.options.messageInterval);
+    return this.stateStore.getStatus(this.duration, this.options.messageInterval);
   }
 
   async destroy() {
