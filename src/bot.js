@@ -11,6 +11,7 @@ import { messageTracker } from './plugins/transcription/message-tracker.js';
 import { BirthdayPlugin } from './plugins/birthday/index.js';
 import { ReminderPlugin } from './plugins/reminder/index.js';
 import { ProfileCinemaPlugin } from './plugins/profile-cinema/index.js';
+import { responseHelper } from './utils/response-helper.js';
 
 export class WhatsAppBot {
   constructor() {
@@ -69,6 +70,9 @@ export class WhatsAppBot {
       console.log(i18n.t('botReady'));
       this.isReady = true;
       this.logBotInfo();
+
+      // Initialize response helper with client
+      responseHelper.setClient(this.client);
 
       // Initialize transcription plugin (needs client to be ready)
       if (this.transcriptionPlugin) {

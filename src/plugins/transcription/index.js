@@ -4,6 +4,7 @@ import { storage } from '../../utils/storage.js';
 import { messageTracker } from './message-tracker.js';
 import { config } from '../../config.js';
 import { i18n } from '../../utils/i18n.js';
+import { responseHelper } from '../../utils/response-helper.js';
 
 export class TranscriptionPlugin {
   constructor() {
@@ -72,7 +73,7 @@ export class TranscriptionPlugin {
   async handleManualTranscription(message) {
     // Check if message has a quoted message
     if (!message.hasQuotedMsg) {
-      await message.reply(i18n.t('quoteVoiceMessage'));
+      await responseHelper.reply(message, i18n.t('quoteVoiceMessage'));
       return;
     }
 
@@ -81,7 +82,7 @@ export class TranscriptionPlugin {
 
       // Check if quoted message is a voice message
       if (!quotedMsg.hasMedia || quotedMsg.type !== 'ptt') {
-        await message.reply(i18n.t('notVoiceMessage'));
+        await responseHelper.reply(message, i18n.t('notVoiceMessage'));
         return;
       }
 
@@ -89,7 +90,7 @@ export class TranscriptionPlugin {
       await this.transcribeMessage(quotedMsg);
     } catch (error) {
       console.error('[TranscriptionPlugin] Error handling manual transcription:', error);
-      await message.reply(i18n.t('transcribeFailed'));
+      await responseHelper.reply(message, i18n.t('transcribeFailed'));
     }
   }
 
@@ -108,7 +109,7 @@ export class TranscriptionPlugin {
       statusText += i18n.t('settingsCurrent', currentStatus);
       statusText += i18n.t('settingsUsage');
 
-      await message.reply(statusText);
+      await responseHelper.reply(message, statusText);
       return;
     }
 
@@ -116,28 +117,28 @@ export class TranscriptionPlugin {
 
     if (subCommand === 'global') {
       if (args.length < 2) {
-        await message.reply(i18n.t('settingsUsageError'));
+        await responseHelper.reply(message, i18n.t('settingsUsageError'));
         return;
       }
 
       const setting = args[1].toLowerCase();
       if (setting === 'on') {
         storage.setGlobalTranscription(true);
-        await message.reply(i18n.t('globalEnabled'));
+        await responseHelper.reply(message, i18n.t('globalEnabled'));
       } else if (setting === 'off') {
         storage.setGlobalTranscription(false);
-        await message.reply(i18n.t('globalDisabled'));
+        await responseHelper.reply(message, i18n.t('globalDisabled'));
       } else {
-        await message.reply(i18n.t('settingsUsageError'));
+        await responseHelper.reply(message, i18n.t('settingsUsageError'));
       }
     } else if (subCommand === 'on') {
       storage.setTranscriptionForChat(chatId, true);
-      await message.reply(i18n.t('chatEnabled'));
+      await responseHelper.reply(message, i18n.t('chatEnabled'));
     } else if (subCommand === 'off') {
       storage.setTranscriptionForChat(chatId, false);
-      await message.reply(i18n.t('chatDisabled'));
+      await responseHelper.reply(message, i18n.t('chatDisabled'));
     } else {
-      await message.reply(i18n.t('settingsInvalidOption'));
+      await responseHelper.reply(message, i18n.t('settingsInvalidOption'));
     }
   }
 
@@ -150,7 +151,7 @@ export class TranscriptionPlugin {
 
       if (!media) {
         console.error('[TranscriptionPlugin] Failed to download media');
-        await message.reply(i18n.t('downloadFailed'));
+        await responseHelper.reply(message, i18n.t('downloadFailed'));
         return;
       }
 
@@ -167,7 +168,7 @@ export class TranscriptionPlugin {
       await messageTracker.transcribe(message.id._serialized, message, tempFilePath, this.client);
     } catch (error) {
       console.error('[TranscriptionPlugin] Error transcribing message:', error);
-      await message.reply(i18n.t('transcribeFailed'));
+      await responseHelper.reply(message, i18n.t('transcribeFailed'));
     }
   }
 

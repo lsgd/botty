@@ -4,21 +4,14 @@ import pkg from 'whatsapp-web.js';
 import { storage } from '../utils/storage.js';
 import { AuthMiddleware } from '../middleware/auth.js';
 import { i18n } from '../utils/i18n.js';
+import { responseHelper } from '../utils/response-helper.js';
 
 export class CommandHandler {
   static async handle(message) {
     const body = message.body.trim();
 
     // Check if it's a command (starts with !)
-    if (!body.startsWith('!')) {
-      // Check for button response
-      if (message.type === 'buttons_response' || (message.selectedButtonId && message.selectedButtonId.startsWith('plugin_toggle_'))) {
-        const buttonId = message.selectedButtonId || message.id?.id; // Fallback
-        if (buttonId && buttonId.startsWith('plugin_toggle_')) {
-          await this.handlePluginToggle(message, buttonId);
-          return true;
-        }
-      }
+    if (!body.startsWith('!') && !body.startsWith('! ')) {
       return false;
     }
 
@@ -51,11 +44,16 @@ export class CommandHandler {
       return true;
     }
 
+    if (command === 'admin') {
+      await this.handleAdmin(message, args);
+      return true;
+    }
+
     // Delegate to plugins
     const handled = await pluginManager.handleCommand(command, args, message);
 
     if (!handled) {
-      await message.reply(i18n.t('unknownCommand', command));
+      await responseHelper.reply(message, i18n.t('unknownCommand', command));
     }
 
     return true;
@@ -70,10 +68,19 @@ export class CommandHandler {
     helpText += i18n.t('helpCommandHelp');
     helpText += i18n.currentLanguage === 'de'
       ? '!chatid - Zeige die aktuelle Chat-ID\n'
-      : '!chatid - Get the current chat ID\n';
+      : (i18n.currentLanguage === 'it'
+        ? '!chatid - Mostra l\'ID della chat\n'
+        : '!chatid - Get the current chat ID\n');
     helpText += i18n.currentLanguage === 'de'
-      ? '!plugins - Verwalte Plugins (An/Aus)\n\n'
-      : '!plugins - Manage plugins (On/Off)\n\n';
+      ? '!plugins - Verwalte Plugins (An/Aus)\n'
+      : (i18n.currentLanguage === 'it'
+        ? '!plugins - Gestisci i plugin (On/Off)\n'
+        : '!plugins - Manage plugins (On/Off)\n');
+    helpText += i18n.currentLanguage === 'de'
+      ? '!admin - Admin-Chat Einstellungen\n\n'
+      : (i18n.currentLanguage === 'it'
+        ? '!admin - Impostazioni chat admin\n\n'
+        : '!admin - Admin chat settings\n\n');
 
     // Group commands by plugin
     const pluginCommands = {};
@@ -96,7 +103,7 @@ export class CommandHandler {
       helpText += '\n';
     }
 
-    await message.reply(helpText);
+    await responseHelper.reply(message, helpText);
   }
 
   static async handleChatId(message) {
@@ -113,7 +120,37 @@ export class CommandHandler {
       responseText += `\n\nName: ${chat.name}`;
     }
 
-    await message.reply(responseText);
+    await responseHelper.reply(message, responseText);
+  }
+
+  static async handleAdmin(message, args) {
+    const chat = await message.getChat();
+    const chatId = chat.id._serialized;
+
+    if (args.length === 0) {
+      // Show current admin chat status
+      const adminChatId = storage.getAdminChatId();
+      await responseHelper.reply(message, i18n.t('adminChatStatus', adminChatId));
+      return;
+    }
+
+    const subCommand = args[0].toLowerCase();
+
+    if (subCommand === 'set') {
+      storage.setAdminChatId(chatId);
+      // Reply directly (not through helper) since this sets up the admin chat
+      await message.reply(i18n.t('adminChatSet'));
+      return;
+    }
+
+    if (subCommand === 'clear') {
+      storage.clearAdminChatId();
+      // Reply directly since admin chat is being removed
+      await message.reply(i18n.t('adminChatCleared'));
+      return;
+    }
+
+    await responseHelper.reply(message, i18n.t('adminChatUsage'));
   }
 
   static async handlePlugins(message, args) {
@@ -133,7 +170,7 @@ export class CommandHandler {
       menu += '\nTo toggle, use: `!plugins <numbers>`\n';
       menu += 'Examples: `!plugins 1`, `!plugins 1,3`, `!plugins all off`';
 
-      await message.reply(menu);
+      await responseHelper.reply(message, menu);
       return;
     }
 
@@ -148,7 +185,7 @@ export class CommandHandler {
           count++;
         }
       }
-      await message.reply(`✅ Enabled all ${count} disabled plugins.`);
+      await responseHelper.reply(message, `✅ Enabled all ${count} disabled plugins.`);
       return;
     }
 
@@ -161,7 +198,7 @@ export class CommandHandler {
           count++;
         }
       }
-      await message.reply(`❌ Disabled all ${count} active plugins.`);
+      await responseHelper.reply(message, `❌ Disabled all ${count} active plugins.`);
       return;
     }
 
@@ -169,7 +206,7 @@ export class CommandHandler {
     const indices = command.split(/[\s,]+/).map(n => parseInt(n.trim(), 10)).filter(n => !isNaN(n));
 
     if (indices.length === 0) {
-      await message.reply('❌ Invalid format. Use numbers to toggle plugins (e.g., `!plugins 1 3`).');
+      await responseHelper.reply(message, '❌ Invalid format. Use numbers to toggle plugins (e.g., `!plugins 1 3`).');
       return;
     }
 
@@ -185,9 +222,9 @@ export class CommandHandler {
     }
 
     if (updates.length > 0) {
-      await message.reply(`Updated:\n${updates.join('\n')}`);
+      await responseHelper.reply(message, `Updated:\n${updates.join('\n')}`);
     } else {
-      await message.reply('❌ No valid plugin numbers found.');
+      await responseHelper.reply(message, '❌ No valid plugin numbers found.');
     }
   }
 }
