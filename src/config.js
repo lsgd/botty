@@ -9,7 +9,7 @@ const getTimezone = () => {
   if (process.env.BOT_TIMEZONE) {
     return process.env.BOT_TIMEZONE;
   }
-  
+
   // Try to get system timezone
   try {
     return Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -46,7 +46,9 @@ export const config = {
   auth: {
     authorizedNumbers: process.env.AUTHORIZED_NUMBERS
       ? process.env.AUTHORIZED_NUMBERS.split(',').map(n => n.trim())
-      : []
+      : [],
+    // If true, the bot will not reply to unauthorized commands
+    silenceUnauthorized: process.env.SILENCE_UNAUTHORIZED === 'true' || true
   },
 
   // Storage

@@ -1,4 +1,5 @@
 import { pluginManager } from '../plugins/plugin-manager.js';
+import { config } from '../config.js';
 import pkg from 'whatsapp-web.js';
 import { storage } from '../utils/storage.js';
 import { AuthMiddleware } from '../middleware/auth.js';
@@ -27,8 +28,10 @@ export class CommandHandler {
     const args = parts.slice(1);
 
     // Check authorization for all commands
-    if (!(await AuthMiddleware.isAuthorized(message))) {
-      await AuthMiddleware.sendUnauthorizedMessage(message);
+    if (!AuthMiddleware.isAuthorized(message)) {
+      if (!config.auth.silenceUnauthorized) {
+        await AuthMiddleware.sendUnauthorizedMessage(message);
+      }
       return true;
     }
 
