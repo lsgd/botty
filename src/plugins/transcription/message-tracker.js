@@ -205,15 +205,6 @@ export class MessageTracker {
       this.cleanupInterval = null;
     }
   }
-
-
-  // Clean up resources
-  destroy() {
-    if (this.cleanupInterval) {
-      clearInterval(this.cleanupInterval);
-      this.cleanupInterval = null;
-    }
-  }
 }
 
 export const messageTracker = new MessageTracker();
