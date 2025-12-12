@@ -15,7 +15,8 @@ export class CommandHandler {
     }
 
     // Parse command and arguments
-    const parts = body.slice(1).split(/\s+/);
+    // Slice(1) removes '!', trim() removes potential space after '!'
+    const parts = body.slice(1).trim().split(/\s+/);
     const command = parts[0].toLowerCase();
     const args = parts.slice(1);
 
