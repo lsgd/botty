@@ -1,35 +1,47 @@
+# NPM Warnings
 
-# [ ] Warnings in npm install 
+## Status: Cannot be fully resolved
 
-npm install shows these warnings:
+The npm warnings are caused by **transitive dependencies of whatsapp-web.js**:
+
+| Warning | Source |
+|---------|--------|
+| `puppeteer@18.2.1` deprecated | whatsapp-web.js |
+| `fluent-ffmpeg@2.1.3` deprecated | whatsapp-web.js |
+| `inflight`, `rimraf`, `glob`, `fstream` | puppeteer → whatsapp-web.js |
+| `node-domexception` | puppeteer → whatsapp-web.js |
+
+### Why we can't fix these:
+- whatsapp-web.js pins specific versions of puppeteer for WhatsApp Web compatibility
+- Updating puppeteer often breaks whatsapp-web.js functionality
+- These are internal dependencies we don't control
+
+### What we've done:
+- [x] Updated whatsapp-web.js to latest stable (1.34.2)
+- [x] Verified these are transitive dependencies, not direct ones
+
+### Monitoring:
+- Watch for whatsapp-web.js updates that address these warnings
+- Check: https://github.com/pedroslopez/whatsapp-web.js/releases
+
+---
+
+# Punycode Deprecation
+
+## Status: Cannot be resolved
+
+The `punycode` module warning comes from Node.js internals and third-party packages.
+
 ```
-npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
-npm warn deprecated rimraf@2.7.1: Rimraf versions prior to v4 are no longer supported
-npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
-npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
-npm warn deprecated fstream@1.0.12: This package is no longer supported.
-npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
-npm warn deprecated puppeteer@18.2.1: < 24.15.0 is no longer supported
-npm warn deprecated fluent-ffmpeg@2.1.3: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
-
-added 163 packages, and audited 164 packages in 15s
-
-14 packages are looking for funding
-  run `npm fund` for details
-
-5 high severity vulnerabilities
-
-To address all issues (including breaking changes), run:
-  npm audit fix --force
-
-Run `npm audit` for details.
+(node:31021) [DEP0040] DeprecationWarning: The `punycode` module is deprecated.
 ```
 
-# [ ] punycode is deprecated
+This is typically triggered by packages that use older URL parsing methods. Since it's a warning (not an error), it doesn't affect functionality.
 
-At startup, the following warning is shown:
+### Workaround:
+To suppress this warning during startup, you can use:
+```bash
+NODE_OPTIONS='--no-deprecation' npm start
 ```
-(node:31021) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
-(Use `node --trace-deprecation ...` to show where the warning was created)
 
-```
+But this is **not recommended** as it hides all deprecation warnings.
