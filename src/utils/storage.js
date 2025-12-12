@@ -20,7 +20,6 @@ class Storage {
     return {
       transcription: {
         globalEnabled: true,
-        globalEnabled: true,
         chatSettings: {}
       },
       plugins: {}
