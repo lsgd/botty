@@ -65,21 +65,9 @@ export class CommandHandler {
     let helpText = i18n.t('helpTitle');
     helpText += i18n.t('helpCommands');
     helpText += i18n.t('helpCommandHelp');
-    helpText += i18n.currentLanguage === 'de'
-      ? '!chatid - Zeige die aktuelle Chat-ID\n'
-      : (i18n.currentLanguage === 'it'
-        ? '!chatid - Mostra l\'ID della chat\n'
-        : '!chatid - Get the current chat ID\n');
-    helpText += i18n.currentLanguage === 'de'
-      ? '!plugins - Verwalte Plugins (An/Aus)\n'
-      : (i18n.currentLanguage === 'it'
-        ? '!plugins - Gestisci i plugin (On/Off)\n'
-        : '!plugins - Manage plugins (On/Off)\n');
-    helpText += i18n.currentLanguage === 'de'
-      ? '!admin - Admin-Chat Einstellungen\n\n'
-      : (i18n.currentLanguage === 'it'
-        ? '!admin - Impostazioni chat admin\n\n'
-        : '!admin - Admin chat settings\n\n');
+    helpText += i18n.t('helpChatId');
+    helpText += i18n.t('helpPlugins');
+    helpText += i18n.t('helpAdmin');
 
     // Group commands by plugin
     const pluginCommands = {};

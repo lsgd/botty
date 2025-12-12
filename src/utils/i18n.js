@@ -18,7 +18,10 @@ const translations = {
     // Help command
     helpTitle: '🤖 *Bot Help*\n\n',
     helpCommands: '*Available Commands:*\n',
-    helpCommandHelp: '!help - Show this help message\n\n',
+    helpCommandHelp: '!help - Show this help message\n',
+    helpChatId: '!chatid - Get the current chat ID\n',
+    helpPlugins: '!plugins - Manage plugins (On/Off)\n',
+    helpAdmin: '!admin - Admin chat settings\n\n',
 
     // Transcription plugin
     transcriptionPluginName: 'Voice Transcription',
@@ -90,7 +93,10 @@ const translations = {
     // Help command
     helpTitle: '🤖 *Bot Hilfe*\n\n',
     helpCommands: '*Verfügbare Befehle:*\n',
-    helpCommandHelp: '!help - Diese Hilfenachricht anzeigen\n\n',
+    helpCommandHelp: '!help - Diese Hilfenachricht anzeigen\n',
+    helpChatId: '!chatid - Zeige die aktuelle Chat-ID\n',
+    helpPlugins: '!plugins - Verwalte Plugins (An/Aus)\n',
+    helpAdmin: '!admin - Admin-Chat Einstellungen\n\n',
 
     // Transcription plugin
     transcriptionPluginName: 'Sprachnachrichten-Transkription',
@@ -162,7 +168,10 @@ const translations = {
     // Help command
     helpTitle: '🤖 *Guida del Bot*\n\n',
     helpCommands: '*Comandi disponibili:*\n',
-    helpCommandHelp: '!help - Mostra questo messaggio di aiuto\n\n',
+    helpCommandHelp: '!help - Mostra questo messaggio di aiuto\n',
+    helpChatId: '!chatid - Mostra l\'ID della chat\n',
+    helpPlugins: '!plugins - Gestisci i plugin (On/Off)\n',
+    helpAdmin: '!admin - Impostazioni chat admin\n\n',
 
     // Transcription plugin
     transcriptionPluginName: 'Trascrizione vocale',
