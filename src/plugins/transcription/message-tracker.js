@@ -152,18 +152,6 @@ export class MessageTracker {
     }
   }
 
-  // Clean up old completed entries (optional, for memory management)
-  cleanup(maxAge = 3600000) { // Default 1 hour
-    const now = Date.now();
-    const oldCompleted = Array.from(this.completed).filter(id => {
-      // Simple age-based cleanup - you might want to store timestamps
-      return false; // Keep all for now
-    });
-    // For a production system, you'd want to track completion timestamps
-    // and remove entries older than maxAge
-    // Also clean up empty queues
-  }
-
   // Handle message revocation
   async handleRevoke(message, client) {
     try {
