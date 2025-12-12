@@ -84,20 +84,15 @@ class Storage {
 
   // Admin chat settings
   getAdminChatId() {
-    const adminChatId = this.data.adminChatId || null;
-    console.log(`[Storage] getAdminChatId called, returning: ${adminChatId}`);
-    return adminChatId;
+    return this.data.adminChatId || null;
   }
 
   setAdminChatId(chatId) {
-    console.log(`[Storage] setAdminChatId called with: ${chatId}`);
     this.data.adminChatId = chatId;
     this.save();
-    console.log(`[Storage] Admin chat ID saved, current data.adminChatId: ${this.data.adminChatId}`);
   }
 
   clearAdminChatId() {
-    console.log('[Storage] clearAdminChatId called');
     delete this.data.adminChatId;
     this.save();
   }

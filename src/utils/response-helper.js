@@ -30,11 +30,8 @@ class ResponseHelper {
         const { isTranscription = false } = options;
         const adminChatId = storage.getAdminChatId();
 
-        console.log(`[ResponseHelper] reply called - adminChatId: ${adminChatId}, isTranscription: ${isTranscription}, hasClient: ${!!this.client}`);
-
         // If no admin chat configured, or this is a transcription response, reply directly
         if (!adminChatId || isTranscription) {
-            console.log('[ResponseHelper] No admin chat or transcription - replying directly');
             return await message.reply(text);
         }
 
@@ -60,7 +57,6 @@ class ResponseHelper {
                 contextPrefix = `📍 *From:* ${chatName}\n\n`;
             }
 
-            console.log(`[ResponseHelper] Redirecting to admin chat: ${adminChatId}`);
             // Send to admin chat with context
             const adminChat = await this.client.getChatById(adminChatId);
             return await adminChat.sendMessage(contextPrefix + text);
