@@ -1,6 +1,5 @@
 import { pluginManager } from '../plugins/plugin-manager.js';
 import { config } from '../config.js';
-import pkg from 'whatsapp-web.js';
 import { storage } from '../utils/storage.js';
 import { AuthMiddleware } from '../middleware/auth.js';
 import { i18n } from '../utils/i18n.js';
