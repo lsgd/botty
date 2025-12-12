@@ -1,23 +1,19 @@
 # NPM Warnings
 
-## Status: Cannot be fully resolved
+## Status: Partially resolved
 
 The npm warnings are caused by **transitive dependencies of whatsapp-web.js**:
 
-| Warning | Source |
-|---------|--------|
-| `puppeteer@18.2.1` deprecated | whatsapp-web.js |
-| `fluent-ffmpeg@2.1.3` deprecated | whatsapp-web.js |
-| `inflight`, `rimraf`, `glob`, `fstream` | puppeteer → whatsapp-web.js |
-| `node-domexception` | puppeteer → whatsapp-web.js |
-
-### Why we can't fix these:
-- whatsapp-web.js pins specific versions of puppeteer for WhatsApp Web compatibility
-- Updating puppeteer often breaks whatsapp-web.js functionality
-- These are internal dependencies we don't control
+| Warning | Source | Status |
+|---------|--------|--------|
+| `puppeteer@18.2.1` deprecated | whatsapp-web.js | Cannot fix |
+| `fluent-ffmpeg@2.1.3` deprecated | whatsapp-web.js | Cannot fix |
+| `inflight`, `rimraf`, `glob`, `fstream` | puppeteer → whatsapp-web.js | Cannot fix |
+| `node-domexception` | puppeteer → whatsapp-web.js | Cannot fix |
 
 ### What we've done:
 - [x] Updated whatsapp-web.js to latest stable (1.34.2)
+- [x] Updated openai to v6 (uses native fetch, removed 31 packages)
 - [x] Verified these are transitive dependencies, not direct ones
 
 ### Monitoring:
@@ -28,20 +24,12 @@ The npm warnings are caused by **transitive dependencies of whatsapp-web.js**:
 
 # Punycode Deprecation
 
-## Status: Cannot be resolved
+## Status: Partially resolved
 
-The `punycode` module warning comes from Node.js internals and third-party packages.
+The `punycode` module warning comes from `whatwg-url` package used by whatsapp-web.js.
 
-```
-(node:31021) [DEP0040] DeprecationWarning: The `punycode` module is deprecated.
-```
+### What we've done:
+- [x] Updated openai to v6 (removed one source of punycode warning)
+- [ ] Remaining warning from whatsapp-web.js → node-fetch → whatwg-url (cannot fix)
 
-This is typically triggered by packages that use older URL parsing methods. Since it's a warning (not an error), it doesn't affect functionality.
-
-### Workaround:
-To suppress this warning during startup, you can use:
-```bash
-NODE_OPTIONS='--no-deprecation' npm start
-```
-
-But this is **not recommended** as it hides all deprecation warnings.
+The remaining warning will disappear when whatsapp-web.js updates its dependencies.
