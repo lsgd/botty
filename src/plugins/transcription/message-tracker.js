@@ -29,7 +29,7 @@ export class MessageTracker {
     }
 
     this.pending.add(messageId);
-    const chatId = message.from;
+    const chatId = message.fromMe ? message.to : message.from;
 
     // Initialize queue for this chat if it doesn't exist
     if (!this.queues.has(chatId)) {
@@ -40,7 +40,7 @@ export class MessageTracker {
     const previousTask = this.queues.get(chatId);
 
     // Chain the new task
-    const currentTask = previousTask.then(async () => {
+    const processingTask = previousTask.then(async () => {
       console.log(`[MessageTracker] Starting transcription for ${messageId}`);
 
       try {
@@ -53,7 +53,9 @@ export class MessageTracker {
         // Mark as unread
         try {
           const chat = await message.getChat();
-          await chat.markUnread();
+          if (chat) {
+            await chat.markUnread();
+          }
         } catch (chatError) {
           console.error(`[MessageTracker] Failed to mark chat as unread:`, chatError);
         }
@@ -75,6 +77,15 @@ export class MessageTracker {
         // Mark as completed and remove from pending
         this.completed.add(messageId);
         this.pending.delete(messageId);
+      }
+    });
+
+    // Wrap with cleanup logic
+    // We use a separate promise to ensure we check the map against the *stored* promise
+    const currentTask = processingTask.finally(() => {
+      // If this task is still the tail of the queue, remove the queue
+      if (this.queues.get(chatId) === currentTask) {
+        this.queues.delete(chatId);
       }
     });
 

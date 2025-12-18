@@ -7,6 +7,8 @@ describe('MessageTracker', () => {
   let tracker;
   const mockMessage = {
     from: 'chat1',
+    to: 'me',
+    fromMe: false,
     id: { _serialized: 'msg123' },
     reply: mock.fn(),
     getChat: mock.fn(async () => ({ markUnread: mock.fn() }))
@@ -79,6 +81,17 @@ describe('MessageTracker', () => {
       
       assert.strictEqual(tracker.isCompleted('msg1'), true);
       assert.strictEqual(tracker.isCompleted('msg2'), true);
+    });
+
+    it('should use separate queues for outgoing messages to different chats', async () => {
+      const msg1 = { ...mockMessage, fromMe: true, from: 'me', to: 'chat1', id: { _serialized: 'msg1' } };
+      const msg2 = { ...mockMessage, fromMe: true, from: 'me', to: 'chat2', id: { _serialized: 'msg2' } };
+      
+      tracker.transcribe('msg1', msg1, 'path1');
+      tracker.transcribe('msg2', msg2, 'path2');
+      
+      const status = tracker.getStatus();
+      assert.strictEqual(status.activeQueues, 2);
     });
   });
 
