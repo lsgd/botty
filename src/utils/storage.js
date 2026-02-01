@@ -21,7 +21,8 @@ class Storage {
       transcription: {
         globalEnabled: true,
         chatSettings: {}
-      }
+      },
+      plugins: {}
     };
   }
 
@@ -63,6 +64,37 @@ class Storage {
 
   getChatTranscription(chatId) {
     return this.data.transcription.chatSettings[chatId]?.enabled;
+  }
+
+  // Plugin state management
+  isPluginEnabled(pluginName) {
+    if (this.data.plugins && pluginName in this.data.plugins) {
+      return this.data.plugins[pluginName];
+    }
+    return true; // Default to enabled
+  }
+
+  setPluginEnabled(pluginName, enabled) {
+    if (!this.data.plugins) {
+      this.data.plugins = {};
+    }
+    this.data.plugins[pluginName] = enabled;
+    this.save();
+  }
+
+  // Admin chat settings
+  getAdminChatId() {
+    return this.data.adminChatId || null;
+  }
+
+  setAdminChatId(chatId) {
+    this.data.adminChatId = chatId;
+    this.save();
+  }
+
+  clearAdminChatId() {
+    delete this.data.adminChatId;
+    this.save();
   }
 }
 

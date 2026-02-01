@@ -4,6 +4,8 @@ import { dirname } from 'path';
 import { i18n } from '../../utils/i18n.js';
 import { BirthdayScheduler } from './birthday-scheduler.js';
 import { dailyMessageTracker } from './message-tracker.js';
+import { storage } from '../../utils/storage.js';
+import { responseHelper } from '../../utils/response-helper.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -40,6 +42,10 @@ export class BirthdayPlugin {
     this.client = null;
   }
 
+  get isEnabled() {
+    return storage.isPluginEnabled(this.name);
+  }
+
   /**
    * Initialize the plugin with WhatsApp client
    * @param {Object} client - WhatsApp client
@@ -66,6 +72,7 @@ export class BirthdayPlugin {
    * @returns {boolean}
    */
   shouldHandle(message) {
+    if (!this.isEnabled) return false;
     // Track messages from authorized users
     // message.author is the actual sender in group chats
     // message.from is the chat ID
@@ -89,6 +96,8 @@ export class BirthdayPlugin {
    * @param {Object} message - WhatsApp message
    */
   async onCommand(command, args, message) {
+    if (!this.isEnabled) return;
+
     if (command === 'birthdays') {
       await this.handleStatusCommand(message);
     } else if (command === 'birthdays-reload') {
@@ -150,10 +159,10 @@ export class BirthdayPlugin {
           : '💡 Test a message with: !birthdays-test <number>';
       }
 
-      await message.reply(statusText);
+      await responseHelper.reply(message, statusText);
     } catch (error) {
       console.error('[BirthdayPlugin] Error in status command:', error);
-      await message.reply(
+      await responseHelper.reply(message,
         i18n.currentLanguage === 'de'
           ? '❌ Fehler beim Abrufen der Geburtstage'
           : '❌ Error getting birthdays'
@@ -167,7 +176,7 @@ export class BirthdayPlugin {
    */
   async handleReloadCommand(message) {
     try {
-      await message.reply(
+      await responseHelper.reply(message,
         i18n.currentLanguage === 'de'
           ? '🔄 Lade Geburtstags-CSV neu...'
           : '🔄 Reloading birthday CSV...'
@@ -178,14 +187,14 @@ export class BirthdayPlugin {
 
       const status = this.scheduler.getStatus();
 
-      await message.reply(
+      await responseHelper.reply(message,
         i18n.currentLanguage === 'de'
           ? `✅ CSV neu geladen!\n\nGeburtstage: ${status.totalBirthdays}\nHeute: ${status.todaysBirthdays}`
           : `✅ CSV reloaded!\n\nBirthdays: ${status.totalBirthdays}\nToday: ${status.todaysBirthdays}`
       );
     } catch (error) {
       console.error('[BirthdayPlugin] Error in reload command:', error);
-      await message.reply(
+      await responseHelper.reply(message,
         i18n.currentLanguage === 'de'
           ? '❌ Fehler beim Neuladen der CSV'
           : '❌ Error reloading CSV'
@@ -201,7 +210,7 @@ export class BirthdayPlugin {
   async handleTestCommand(args, message) {
     try {
       if (args.length === 0) {
-        await message.reply(
+        await responseHelper.reply(message,
           i18n.currentLanguage === 'de'
             ? '❌ Verwendung: !birthdays-test <nummer>\n\nVerwende !birthdays um die Liste mit Nummern zu sehen.'
             : '❌ Usage: !birthdays-test <number>\n\nUse !birthdays to see the numbered list.'
@@ -211,7 +220,7 @@ export class BirthdayPlugin {
 
       const number = parseInt(args[0], 10);
       if (isNaN(number) || number < 1) {
-        await message.reply(
+        await responseHelper.reply(message,
           i18n.currentLanguage === 'de'
             ? '❌ Ungültige Nummer. Verwende eine positive Zahl.'
             : '❌ Invalid number. Use a positive number.'
@@ -223,7 +232,7 @@ export class BirthdayPlugin {
       const index = number - 1;
 
       if (index >= birthdays.length) {
-        await message.reply(
+        await responseHelper.reply(message,
           i18n.currentLanguage === 'de'
             ? `❌ Nummer ${number} nicht gefunden. Es gibt nur ${birthdays.length} Geburtstage.`
             : `❌ Number ${number} not found. There are only ${birthdays.length} birthdays.`
@@ -238,7 +247,7 @@ export class BirthdayPlugin {
       const age = new Date().getFullYear() - birthYear;
       const birthdayWithAge = { ...birthday, age };
 
-      await message.reply(
+      await responseHelper.reply(message,
         i18n.currentLanguage === 'de'
           ? `🧪 *Test für:* ${birthday.firstName} ${birthday.lastName}\n\nGeneriere Nachricht...`
           : `🧪 *Testing for:* ${birthday.firstName} ${birthday.lastName}\n\nGenerating message...`
@@ -257,12 +266,12 @@ export class BirthdayPlugin {
 
       responseText += `> ${testMessage.split('\n').join('\n> ')}`;
 
-      await message.reply(responseText);
+      await responseHelper.reply(message, responseText);
 
       console.log(`[BirthdayPlugin] Test message generated for ${birthday.firstName} ${birthday.lastName}`);
     } catch (error) {
       console.error('[BirthdayPlugin] Error in test command:', error);
-      await message.reply(
+      await responseHelper.reply(message,
         i18n.currentLanguage === 'de'
           ? '❌ Fehler beim Generieren der Testnachricht'
           : '❌ Error generating test message'

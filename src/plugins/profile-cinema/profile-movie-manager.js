@@ -1,7 +1,6 @@
 import fs from 'fs/promises';
 import pkg from 'whatsapp-web.js';
-import { FrameExtractor } from './frame-extractor.js';
-import { detectKeyframes, ensureReadableMovie } from './keyframe-detector.js';
+import { ensureReadableMovie, getMovieDuration, FrameExtractor } from './frame-extractor.js';
 import { ProfileMovieState } from './profile-movie-state.js';
 
 const { MessageMedia } = pkg;
@@ -15,6 +14,7 @@ export class ProfileMovieManager {
     this.keyframes = [];
     this.ready = false;
     this.updateQueue = Promise.resolve();
+    this.updateTimeout = null;
   }
 
   async initialize() {
@@ -28,12 +28,12 @@ export class ProfileMovieManager {
       console.log('[ProfileCinema] Movie file changed. Restarting progression.');
     }
 
-    this.keyframes = await detectKeyframes(this.options.moviePath);
-    if (this.keyframes.length === 0) {
-      throw new Error('ProfileCinema: No keyframes found in movie');
+    this.duration = await getMovieDuration(this.options.moviePath);
+    if (this.duration === 0) {
+      throw new Error('ProfileCinema: No duration found in movie');
     }
 
-    if (this.stateStore.isComplete(this.keyframes.length)) {
+    if (this.stateStore.isComplete(this.duration)) {
       console.log('[ProfileCinema] Movie already finished. Sticking to last frame.');
     }
 
@@ -42,14 +42,27 @@ export class ProfileMovieManager {
   }
 
   async handleIncomingMessage(message) {
-    if (!this.ready || message.fromMe) {
+    if (!this.ready) {
       return;
     }
 
-    const shouldAdvance = this.stateStore.registerMessage(this.options.messageInterval);
-    if (shouldAdvance) {
-      this.queueFrameAdvance();
+    this.stateStore.registerMessage(this.options.messageInterval);
+
+    if (this.updateTimeout) {
+      clearTimeout(this.updateTimeout);
     }
+
+    const interval = Math.max(1, Number(this.options.messageInterval) || 10);
+    const minDelay = interval * 1000;
+    const maxDelay = minDelay * 1.5;
+    const delay = Math.floor(minDelay + Math.random() * (maxDelay - minDelay));
+
+    console.log(`[ProfileCinema] Scheduling update in ${(delay / 1000).toFixed(1)}s (Debounce)`);
+
+    this.updateTimeout = setTimeout(() => {
+      this.queueFrameAdvance();
+      this.updateTimeout = null;
+    }, delay);
 
     await this.stateStore.save();
   }
@@ -63,42 +76,52 @@ export class ProfileMovieManager {
   }
 
   async advanceFrameSafely() {
-    if (this.stateStore.isComplete(this.keyframes.length)) {
+    if (this.stateStore.isComplete(this.duration)) {
+      console.log('[ProfileCinema] Movie completed. Skipping advance.');
       return;
     }
 
-    const currentIndex = this.stateStore.state.currentKeyframeIndex;
-    const nextIndex = Math.min(currentIndex + 1, this.keyframes.length - 1);
-    if (nextIndex === currentIndex) {
-      return;
-    }
+    const currentTimeSeconds = this.stateStore.state.currentTimeSeconds;
+    const nextTimeSeconds = Math.min(currentTimeSeconds + 1, this.duration);
 
-    const target = this.keyframes[nextIndex];
-    const frame = await this.frameExtractor.extract(target.time ?? target);
+    const frame = await this.frameExtractor.extract(nextTimeSeconds);
     try {
-      const media = await MessageMedia.fromFilePath(frame.filePath);
+      const media = MessageMedia.fromFilePath(frame.filePath);
+      if (!media.mimetype) {
+        media.mimetype = 'image/jpeg';
+      }
       const selfId = this.client.info?.wid?._serialized || this.client.info?.me?._serialized;
       if (!selfId) {
         throw new Error('Unable to resolve self WhatsApp ID');
       }
 
-      await this.client.setProfilePicture(selfId, media);
-      this.stateStore.advanceTo(nextIndex, target.time ?? target);
+      await this.client.setProfilePicture(media);
+      this.stateStore.advanceTo(nextTimeSeconds);
       await this.stateStore.save();
-      console.log(`[ProfileCinema] Updated profile to frame ${nextIndex + 1}/${this.keyframes.length}`);
+      console.log(`[ProfileCinema] Updated profile to second ${nextTimeSeconds}/${this.duration}`);
     } finally {
       await this.frameExtractor.cleanup(frame.filePath);
     }
+  }
+
+  async seekTo(timestampSeconds) {
+    const targetTime = Math.max(0, Math.min(timestampSeconds, this.duration));
+    this.stateStore.advanceTo(targetTime);
+    await this.stateStore.save();
+    console.log(`[ProfileCinema] Seeked to ${targetTime}s`);
   }
 
   getStatus() {
     if (!this.ready) {
       return null;
     }
-    return this.stateStore.getStatus(this.keyframes.length, this.options.messageInterval);
+    return this.stateStore.getStatus(this.duration, this.options.messageInterval);
   }
 
   async destroy() {
+    if (this.updateTimeout) {
+      clearTimeout(this.updateTimeout);
+    }
     await this.updateQueue;
   }
 }

@@ -110,6 +110,7 @@ All commands start with `!` and are only available to authorized numbers.
 #### General Commands
 - `!help` - Show all available commands and plugins
 - `!chatid` - Get the current chat ID
+- `!plugins` - Open the Plugin Manager to enable/disable plugins
 
 #### Transcription Commands
 - `!t` - Manually transcribe a quoted voice message (reply to a voice message with !t)
@@ -123,6 +124,13 @@ All commands start with `!` and are only available to authorized numbers.
 - `!birthdays` - Show numbered list of all birthdays
 - `!birthdays-reload` - Reload the birthday CSV file
 - `!birthdays-test <number>` - Generate and preview a test birthday message
+
+#### Plugin Manager Commands
+- `!plugins` - Show list of all plugins and their status
+- `!plugins <number>` - Toggle a plugin by its number (e.g. `!plugins 1`)
+- `!plugins <numbers>` - Toggle multiple plugins (e.g. `!plugins 1, 3`)
+- `!plugins on` - Enable all plugins
+- `!plugins off` - Disable all plugins
 
 #### Profile Cinema Commands
 - `!cinema-progress` - Show the current frame/timestamp/percentage (authorized senders only)
@@ -499,6 +507,14 @@ Examples:
 Very affordable for personal/small team use!
 
 ## Recent Updates
+
+### Version 1.2.0 (2025-12-06)
+
+**New Features:**
+- ✅ **Plugin Manager**: Enable/disable plugins directly from WhatsApp with `!plugins`
+- ✅ **Interactive Menu**: Text-based menu to view status and toggle plugins
+- ✅ **Global Message Filter**: Automatically ignores messages received before bot startup (prevents history flood)
+- ✅ **Persistence**: Plugin states are saved and restored across restarts
 
 ### Version 1.1.0 (2025-11-21)
 

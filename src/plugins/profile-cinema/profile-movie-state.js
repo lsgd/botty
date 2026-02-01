@@ -3,10 +3,9 @@ import path from 'path';
 
 const DEFAULT_STATE = {
   movieFingerprint: null,
-  currentKeyframeIndex: 0,
+  currentTimeSeconds: 0,
   messageSinceLastFrame: 0,
-  totalMessages: 0,
-  lastTimestamp: null
+  totalMessages: 0
 };
 
 export class ProfileMovieState {
@@ -61,24 +60,22 @@ export class ProfileMovieState {
     return false;
   }
 
-  advanceTo(index, timestamp) {
-    this.state.currentKeyframeIndex = index;
-    this.state.lastTimestamp = timestamp;
+  advanceTo(timestamp) {
+    this.state.currentTimeSeconds = timestamp;
   }
 
-  isComplete(totalKeyframes) {
-    if (totalKeyframes === 0) {
+  isComplete(duration) {
+    if (duration === 0) {
       return true;
     }
-    return this.state.currentKeyframeIndex >= totalKeyframes - 1;
+    return this.state.currentTimeSeconds >= duration;
   }
 
-  getStatus(totalKeyframes, interval) {
+  getStatus(duration, interval) {
     return {
-      currentFrame: Math.min(this.state.currentKeyframeIndex, Math.max(0, totalKeyframes - 1)),
-      totalKeyframes,
-      completed: this.isComplete(totalKeyframes),
-      lastTimestampSeconds: this.state.lastTimestamp,
+      currentTimeSeconds: this.state.currentTimeSeconds,
+      duration,
+      completed: this.isComplete(duration),
       totalMessages: this.state.totalMessages,
       messageInterval: Math.max(1, Number(interval) || 1)
     };

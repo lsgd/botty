@@ -1,8 +1,10 @@
 import { DateTime } from 'luxon';
 import { ReminderStorage } from './reminder-storage.js';
+import { storage } from '../../utils/storage.js';
 import { ReminderScheduler } from './reminder-scheduler.js';
 import { i18n } from '../../utils/i18n.js';
 import { config } from '../../config.js';
+import { responseHelper } from '../../utils/response-helper.js';
 
 export class ReminderPlugin {
   constructor() {
@@ -36,6 +38,10 @@ export class ReminderPlugin {
     this.scheduler = null;
   }
 
+  get isEnabled() {
+    return storage.isPluginEnabled(this.name);
+  }
+
   async initialize(client) {
     console.log('[ReminderPlugin] Initializing...');
 
@@ -56,6 +62,8 @@ export class ReminderPlugin {
   }
 
   async onCommand(command, args, message) {
+    if (!this.isEnabled) return false;
+
     if (command === 'remind') {
       await this.handleRemind(args, message);
       return true;
@@ -81,7 +89,7 @@ export class ReminderPlugin {
         ? '❌ Format: !remind yyyy-mm-dd <Erinnerungstext>\n\nBeispiel: !remind 2025-12-24 Geschenke kaufen'
         : '❌ Format: !remind yyyy-mm-dd <reminder text>\n\nExample: !remind 2025-12-24 Buy gifts';
 
-      await message.reply(helpText);
+      await responseHelper.reply(message, helpText);
       return;
     }
 
@@ -95,7 +103,7 @@ export class ReminderPlugin {
         ? '❌ Ungültiges Datumsformat. Verwende yyyy-mm-dd (z.B. 2025-12-24)'
         : '❌ Invalid date format. Use yyyy-mm-dd (e.g. 2025-12-24)';
 
-      await message.reply(errorText);
+      await responseHelper.reply(message, errorText);
       return;
     }
 
@@ -106,7 +114,7 @@ export class ReminderPlugin {
         ? '❌ Ungültiges Datum'
         : '❌ Invalid date';
 
-      await message.reply(errorText);
+      await responseHelper.reply(message, errorText);
       return;
     }
 
@@ -117,7 +125,7 @@ export class ReminderPlugin {
         ? '❌ Das Datum liegt in der Vergangenheit'
         : '❌ Date is in the past';
 
-      await message.reply(errorText);
+      await responseHelper.reply(message, errorText);
       return;
     }
 
@@ -143,7 +151,7 @@ export class ReminderPlugin {
       ? `✅ Erinnerung erstellt für ${dateStr}:\n"${text}"\n\nWird gesendet um 7:07 Uhr`
       : `✅ Reminder created for ${dateStr}:\n"${text}"\n\nWill be sent at 7:07 AM`;
 
-    await message.reply(successText);
+    await responseHelper.reply(message, successText);
   }
 
   async handleListReminders(args, message) {
@@ -157,7 +165,7 @@ export class ReminderPlugin {
         ? '📅 Keine Erinnerungen in diesem Chat'
         : '📅 No reminders in this chat';
 
-      await message.reply(emptyText);
+      await responseHelper.reply(message, emptyText);
       return;
     }
 
@@ -176,7 +184,7 @@ export class ReminderPlugin {
       ? '\n💡 Lösche mit: !reminders-cancel <Nummer>'
       : '\n💡 Cancel with: !reminders-cancel <number>';
 
-    await message.reply(responseText);
+    await responseHelper.reply(message, responseText);
   }
 
   async handleCancelReminder(args, message) {
@@ -185,7 +193,7 @@ export class ReminderPlugin {
         ? '❌ Format: !reminders-cancel <Nummer>\n\nVerwende !reminders um die Nummern zu sehen'
         : '❌ Format: !reminders-cancel <number>\n\nUse !reminders to see the numbers';
 
-      await message.reply(helpText);
+      await responseHelper.reply(message, helpText);
       return;
     }
 
@@ -201,7 +209,7 @@ export class ReminderPlugin {
         ? '❌ Ungültige Nummer'
         : '❌ Invalid number';
 
-      await message.reply(errorText);
+      await responseHelper.reply(message, errorText);
       return;
     }
 
@@ -217,6 +225,6 @@ export class ReminderPlugin {
       ? `✅ Erinnerung gelöscht:\n${reminder.date} - ${reminder.text}`
       : `✅ Reminder cancelled:\n${reminder.date} - ${reminder.text}`;
 
-    await message.reply(successText);
+    await responseHelper.reply(message, successText);
   }
 }

@@ -65,6 +65,10 @@ export class PluginManager {
     }
     return commands;
   }
+
+  getEnabledPlugins() {
+    return Array.from(this.plugins.values()).filter(p => p.isEnabled);
+  }
 }
 
 export const pluginManager = new PluginManager();

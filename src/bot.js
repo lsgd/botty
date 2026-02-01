@@ -7,17 +7,21 @@ import { i18n } from './utils/i18n.js';
 import { pluginManager } from './plugins/plugin-manager.js';
 import { CommandHandler } from './commands/command-handler.js';
 import { TranscriptionPlugin } from './plugins/transcription/index.js';
+import { messageTracker } from './plugins/transcription/message-tracker.js';
 import { BirthdayPlugin } from './plugins/birthday/index.js';
 import { ReminderPlugin } from './plugins/reminder/index.js';
 import { ProfileCinemaPlugin } from './plugins/profile-cinema/index.js';
+import { responseHelper } from './utils/response-helper.js';
 
 export class WhatsAppBot {
   constructor() {
     this.client = null;
     this.isReady = false;
+    this.transcriptionPlugin = null;
     this.birthdayPlugin = null;
     this.reminderPlugin = null;
     this.profileCinemaPlugin = null;
+    this.startTime = Math.floor(Date.now() / 1000);
   }
 
   async initialize() {
@@ -28,7 +32,7 @@ export class WhatsAppBot {
     console.log(`Language set to: ${config.language}`);
 
     // Create WhatsApp client with authentication
-    this.client = new Client({
+    const clientConfig = {
       authStrategy: new LocalAuth({
         dataPath: config.whatsapp.authPath
       }),
@@ -36,10 +40,25 @@ export class WhatsAppBot {
         headless: true,
         args: config.whatsapp.puppeteerArgs
       }
-    });
+    };
+
+    // Add webVersionCache if a specific version is configured
+    if (config.whatsapp.webVersion) {
+      clientConfig.webVersionCache = {
+        type: 'remote',
+        remotePath: `https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/${config.whatsapp.webVersion}.html`
+      };
+    }
+
+    this.client = new Client(clientConfig);
 
     // Register event handlers
     this.registerEventHandlers();
+
+    // Register debug handlers for all other events (if enabled)
+    if (config.debug) {
+      this.registerDebugHandlers();
+    }
 
     // Register plugins
     this.registerPlugins();
@@ -66,6 +85,14 @@ export class WhatsAppBot {
       console.log(i18n.t('botReady'));
       this.isReady = true;
       this.logBotInfo();
+
+      // Initialize response helper with client
+      responseHelper.setClient(this.client);
+
+      // Initialize transcription plugin (needs client to be ready)
+      if (this.transcriptionPlugin) {
+        await this.transcriptionPlugin.initialize(this.client);
+      }
 
       // Initialize birthday plugin (needs client to be ready)
       if (this.birthdayPlugin) {
@@ -108,12 +135,209 @@ export class WhatsAppBot {
     });
   }
 
+  registerDebugHandlers() {
+    console.log('🔍 Registering debug event handlers...');
+
+    // Authentication & Connection Events
+    this.client.on('code', (code) => {
+      console.log('[WhatsAppBot] 🔐 Event: code -', code);
+    });
+
+    this.client.on('loading_screen', (percent, message) => {
+      console.log(`[WhatsAppBot] 🔐 Event: loading_screen - ${percent}% ${message}`);
+    });
+
+    this.client.on('remote_session_saved', () => {
+      console.log('[WhatsAppBot] 🔐 Event: remote_session_saved');
+    });
+
+    // Message Events
+    this.client.on('message_ciphertext', (msg) => {
+      try {
+        console.log('[WhatsAppBot] 📝 Event: message_ciphertext', JSON.stringify(msg, null, 2));
+      } catch (error) {
+        console.log('[WhatsAppBot] 📝 Event: message_ciphertext', msg);
+      }
+    });
+
+    this.client.on('message_revoke_everyone', async (after, before) => {
+      try {
+        console.log('[WhatsAppBot] 🗑️ Event: message_revoke_everyone', {
+          after: after?.id?._serialized,
+          before: before?.id?._serialized
+        });
+      } catch (error) {
+        console.log('[WhatsAppBot] 🗑️ Event: message_revoke_everyone');
+      }
+    });
+
+    this.client.on('message_revoke_me', async (message) => {
+      try {
+        console.log('[WhatsAppBot] 🗑️ Event: message_revoke_me', message?.id?._serialized);
+      } catch (error) {
+        console.log('[WhatsAppBot] 🗑️ Event: message_revoke_me');
+      }
+    });
+
+    this.client.on('message_ack', (message, ack) => {
+      // ack: -1 = error, 0 = pending, 1 = sent, 2 = delivered, 3 = read, 4 = played
+      const ackStatus = ['error', 'pending', 'sent', 'delivered', 'read', 'played'][ack + 1] || ack;
+      console.log(`[WhatsAppBot] ✓ Event: message_ack - ${message?.id?._serialized} -> ${ackStatus}`);
+    });
+
+    this.client.on('message_edit', (message, newBody, prevBody) => {
+      console.log(`[WhatsAppBot] ✏️ Event: message_edit - ${message?.id?._serialized}`, {
+        from: prevBody,
+        to: newBody
+      });
+    });
+
+    this.client.on('message_reaction', (reaction) => {
+      try {
+        console.log('[WhatsAppBot] 👍 Event: message_reaction', {
+          messageId: reaction?.msgId?._serialized,
+          reaction: reaction?.reaction,
+          senderId: reaction?.senderId
+        });
+      } catch (error) {
+        console.log('[WhatsAppBot] 👍 Event: message_reaction', reaction);
+      }
+    });
+
+    this.client.on('media_uploaded', (message) => {
+      console.log(`[WhatsAppBot] 📎 Event: media_uploaded - ${message?.id?._serialized}`);
+    });
+
+    this.client.on('unread_count', (chat) => {
+      try {
+        console.log(`[WhatsAppBot] 📬 Event: unread_count - ${chat?.id?._serialized}: ${chat?.unreadCount}`);
+      } catch (error) {
+        console.log('[WhatsAppBot] 📬 Event: unread_count');
+      }
+    });
+
+    this.client.on('vote_update', (vote) => {
+      try {
+        console.log('[WhatsAppBot] 🗳️ Event: vote_update', JSON.stringify(vote, null, 2));
+      } catch (error) {
+        console.log('[WhatsAppBot] 🗳️ Event: vote_update', vote);
+      }
+    });
+
+    // Group Events
+    this.client.on('group_join', (notification) => {
+      try {
+        console.log('[WhatsAppBot] 👥 Event: group_join', {
+          chatId: notification?.chatId?._serialized,
+          who: notification?.recipientIds || notification?.author
+        });
+      } catch (error) {
+        console.log('[WhatsAppBot] 👥 Event: group_join', notification);
+      }
+    });
+
+    this.client.on('group_leave', (notification) => {
+      try {
+        console.log('[WhatsAppBot] 🚪 Event: group_leave', {
+          chatId: notification?.chatId?._serialized,
+          who: notification?.recipientIds || notification?.author
+        });
+      } catch (error) {
+        console.log('[WhatsAppBot] 🚪 Event: group_leave', notification);
+      }
+    });
+
+    this.client.on('group_update', (notification) => {
+      try {
+        console.log('[WhatsAppBot] ⚙️ Event: group_update', {
+          chatId: notification?.chatId?._serialized,
+          author: notification?.author,
+          type: notification?.type
+        });
+      } catch (error) {
+        console.log('[WhatsAppBot] ⚙️ Event: group_update', notification);
+      }
+    });
+
+    this.client.on('group_admin_changed', (notification) => {
+      try {
+        console.log('[WhatsAppBot] 👑 Event: group_admin_changed', {
+          chatId: notification?.chatId?._serialized,
+          who: notification?.recipientIds,
+          type: notification?.type
+        });
+      } catch (error) {
+        console.log('[WhatsAppBot] 👑 Event: group_admin_changed', notification);
+      }
+    });
+
+    this.client.on('group_membership_request', (notification) => {
+      try {
+        console.log('[WhatsAppBot] 🚪 Event: group_membership_request', {
+          chatId: notification?.chatId?._serialized,
+          author: notification?.author
+        });
+      } catch (error) {
+        console.log('[WhatsAppBot] 🚪 Event: group_membership_request', notification);
+      }
+    });
+
+    // Chat Events
+    this.client.on('chat_removed', (chat) => {
+      console.log(`[WhatsAppBot] 📁 Event: chat_removed - ${chat?.id?._serialized}`);
+    });
+
+    this.client.on('chat_archived', (chat, currState, prevState) => {
+      console.log(`[WhatsAppBot] 🗂️ Event: chat_archived - ${chat?.id?._serialized}: ${prevState} -> ${currState}`);
+    });
+
+    // Device & Status Events
+    this.client.on('change_state', (state) => {
+      console.log(`[WhatsAppBot] 🔌 Event: change_state - ${state}`);
+    });
+
+    this.client.on('change_battery', (batteryInfo) => {
+      try {
+        console.log('[WhatsAppBot] 🔋 Event: change_battery', {
+          battery: batteryInfo?.battery,
+          plugged: batteryInfo?.plugged
+        });
+      } catch (error) {
+        console.log('[WhatsAppBot] 🔋 Event: change_battery', batteryInfo);
+      }
+    });
+
+    this.client.on('call', (call) => {
+      try {
+        console.log('[WhatsAppBot] 📞 Event: call', {
+          id: call?.id,
+          from: call?.from,
+          isGroup: call?.isGroup,
+          isVideo: call?.isVideo
+        });
+      } catch (error) {
+        console.log('[WhatsAppBot] 📞 Event: call', call);
+      }
+    });
+
+    // Other Events
+    this.client.on('contact_changed', (message, oldId, newId, isContact) => {
+      console.log('[WhatsAppBot] 👤 Event: contact_changed', {
+        oldId,
+        newId,
+        isContact
+      });
+    });
+
+    console.log('✅ Debug event handlers registered');
+  }
+
   registerPlugins() {
     console.log('📦 Registering plugins...');
 
     // Register transcription plugin
-    const transcriptionPlugin = new TranscriptionPlugin();
-    pluginManager.register(transcriptionPlugin);
+    this.transcriptionPlugin = new TranscriptionPlugin();
+    pluginManager.register(this.transcriptionPlugin);
 
     // Register birthday plugin (will be initialized when client is ready)
     this.birthdayPlugin = new BirthdayPlugin();
@@ -134,6 +358,12 @@ export class WhatsAppBot {
     try {
       // Skip status messages
       if (message.isStatus) {
+        return;
+      }
+
+      // Ignore old messages
+      if (message.timestamp && message.timestamp < this.startTime) {
+        console.log(`⏳ Ignoring old message from ${message.from} (ts: ${message.timestamp} < start: ${this.startTime})`);
         return;
       }
 
@@ -181,6 +411,9 @@ export class WhatsAppBot {
     if (this.profileCinemaPlugin) {
       await this.profileCinemaPlugin.destroy();
     }
+
+    // Cleanup message tracker
+    messageTracker.destroy();
 
     if (this.client) {
       await this.client.destroy();

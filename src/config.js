@@ -9,7 +9,7 @@ const getTimezone = () => {
   if (process.env.BOT_TIMEZONE) {
     return process.env.BOT_TIMEZONE;
   }
-  
+
   // Try to get system timezone
   try {
     return Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -31,6 +31,7 @@ export const config = {
   whatsapp: {
     authPath: join(__dirname, '../data/.wwebjs_auth'),
     cachePath: join(__dirname, '../data/.wwebjs_cache'),
+    webVersion: process.env.WEB_VERSION || null, // e.g., '2.3000.1029960097-alpha'
     puppeteerArgs: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
@@ -46,7 +47,9 @@ export const config = {
   auth: {
     authorizedNumbers: process.env.AUTHORIZED_NUMBERS
       ? process.env.AUTHORIZED_NUMBERS.split(',').map(n => n.trim())
-      : []
+      : [],
+    // If true, the bot will not reply to unauthorized commands
+    silenceUnauthorized: process.env.SILENCE_UNAUTHORIZED === 'true' || true
   },
 
   // Storage
@@ -81,9 +84,14 @@ export const config = {
   transcription: {
     maxFileSizeMB: 25,
     timeoutMs: 300000, // 5 minutes
-    defaultLanguage: null // Auto-detect
+    defaultLanguage: null, // Auto-detect
+    cleanupIntervalMs: 3600000, // 1 hour
+    maxAgeMs: 2592000000 // 30 days
   },
 
   // Bot Language (for messages)
-  language: process.env.BOT_LANGUAGE || 'en' // en, de, or it
+  language: process.env.BOT_LANGUAGE || 'en', // en, de, or it
+
+  // Debug Settings
+  debug: process.env.DEBUG === 'true'
 };

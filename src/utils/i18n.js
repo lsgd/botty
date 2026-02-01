@@ -8,9 +8,9 @@ const translations = {
 
     // Authorization
     unauthorized: '👋 Hello! Thanks for reaching out.\n\n' +
-                  'This is an automated bot that assists with various tasks. ' +
-                  'However, access is currently restricted to authorized users only.\n\n' +
-                  'Have a great day!',
+      'This is an automated bot that assists with various tasks. ' +
+      'However, access is currently restricted to authorized users only.\n\n' +
+      'Have a great day!',
 
     // Commands
     unknownCommand: (cmd) => `❌ Unknown command: !${cmd}\n\nType !help to see available commands.`,
@@ -18,7 +18,10 @@ const translations = {
     // Help command
     helpTitle: '🤖 *Bot Help*\n\n',
     helpCommands: '*Available Commands:*\n',
-    helpCommandHelp: '!help - Show this help message\n\n',
+    helpCommandHelp: '!help - Show this help message\n',
+    helpChatId: '!chatid - Get the current chat ID\n',
+    helpPlugins: '!plugins - Manage plugins (On/Off)\n',
+    helpAdmin: '!admin - Admin chat settings\n\n',
 
     // Transcription plugin
     transcriptionPluginName: 'Voice Transcription',
@@ -33,7 +36,7 @@ const translations = {
     // Transcription messages
     transcriptionResult: (text) => `🎤 *Transcription:*\n\n${text}`,
     transcriptionFailed: '❌ *Transcription failed*\n\n' +
-                        'Sorry, I couldn\'t transcribe this voice message. ',
+      'Sorry, I couldn\'t transcribe this voice message. ',
     transcriptionTimeout: 'The message was too long to process.',
     transcriptionRetry: 'Please try again later.',
 
@@ -49,10 +52,10 @@ const translations = {
     settingsChat: (specific) => `This chat: ${specific === undefined ? '(using global)' : (specific ? '✅ Enabled' : '❌ Disabled')}\n`,
     settingsCurrent: (enabled) => `\nCurrent status: ${enabled ? '✅ Active' : '❌ Inactive'}\n\n`,
     settingsUsage: '*Usage:*\n' +
-                   '!transcription on - Enable for this chat\n' +
-                   '!transcription off - Disable for this chat\n' +
-                   '!transcription global on - Enable globally\n' +
-                   '!transcription global off - Disable globally',
+      '!transcription on - Enable for this chat\n' +
+      '!transcription off - Disable for this chat\n' +
+      '!transcription global on - Enable globally\n' +
+      '!transcription global off - Disable globally',
     settingsUsageError: '❌ Usage: !transcription global <on|off>',
     settingsInvalidOption: '❌ Usage: !transcription <on|off|global on|global off>',
 
@@ -61,6 +64,14 @@ const translations = {
     globalDisabled: '❌ Global automatic transcription disabled for all chats.',
     chatEnabled: '✅ Automatic transcription enabled for this chat.',
     chatDisabled: '❌ Automatic transcription disabled for this chat.',
+
+    // Admin chat
+    adminChatStatus: (chatId) => chatId
+      ? `🔧 *Admin Chat*\n\nCurrent admin chat: ${chatId}\n\nAll bot responses (except transcriptions) are redirected here.`
+      : '🔧 *Admin Chat*\n\nNo admin chat configured.\nBot responses appear in the same chat as commands.',
+    adminChatSet: '✅ This chat is now the admin chat.\n\nAll bot responses (except transcriptions) will be sent here.',
+    adminChatCleared: '✅ Admin chat cleared.\n\nBot responses will now appear in the same chat as commands.',
+    adminChatUsage: '❌ Usage:\n!admin - Show current admin chat\n!admin set - Set this chat as admin chat\n!admin clear - Remove admin chat restriction',
   },
 
   de: {
@@ -72,9 +83,9 @@ const translations = {
 
     // Authorization
     unauthorized: '👋 Hallo! Danke für deine Nachricht.\n\n' +
-                  'Dies ist ein automatisierter Bot, der bei verschiedenen Aufgaben hilft. ' +
-                  'Der Zugriff ist jedoch derzeit nur für autorisierte Benutzer möglich.\n\n' +
-                  'Einen schönen Tag noch!',
+      'Dies ist ein automatisierter Bot, der bei verschiedenen Aufgaben hilft. ' +
+      'Der Zugriff ist jedoch derzeit nur für autorisierte Benutzer möglich.\n\n' +
+      'Einen schönen Tag noch!',
 
     // Commands
     unknownCommand: (cmd) => `❌ Unbekannter Befehl: !${cmd}\n\nGib !help ein, um verfügbare Befehle zu sehen.`,
@@ -82,7 +93,10 @@ const translations = {
     // Help command
     helpTitle: '🤖 *Bot Hilfe*\n\n',
     helpCommands: '*Verfügbare Befehle:*\n',
-    helpCommandHelp: '!help - Diese Hilfenachricht anzeigen\n\n',
+    helpCommandHelp: '!help - Diese Hilfenachricht anzeigen\n',
+    helpChatId: '!chatid - Zeige die aktuelle Chat-ID\n',
+    helpPlugins: '!plugins - Verwalte Plugins (An/Aus)\n',
+    helpAdmin: '!admin - Admin-Chat Einstellungen\n\n',
 
     // Transcription plugin
     transcriptionPluginName: 'Sprachnachrichten-Transkription',
@@ -97,7 +111,7 @@ const translations = {
     // Transcription messages
     transcriptionResult: (text) => `🎤 *Transkription:*\n\n${text}`,
     transcriptionFailed: '❌ *Transkription fehlgeschlagen*\n\n' +
-                        'Entschuldigung, diese Sprachnachricht konnte nicht transkribiert werden. ',
+      'Entschuldigung, diese Sprachnachricht konnte nicht transkribiert werden. ',
     transcriptionTimeout: 'Die Nachricht ist zu lang zum Verarbeiten.',
     transcriptionRetry: 'Bitte versuche es später erneut.',
 
@@ -113,10 +127,10 @@ const translations = {
     settingsChat: (specific) => `Dieser Chat: ${specific === undefined ? '(nutzt globale Einstellung)' : (specific ? '✅ Aktiviert' : '❌ Deaktiviert')}\n`,
     settingsCurrent: (enabled) => `\nAktueller Status: ${enabled ? '✅ Aktiv' : '❌ Inaktiv'}\n\n`,
     settingsUsage: '*Verwendung:*\n' +
-                   '!transcription on - Für diesen Chat aktivieren\n' +
-                   '!transcription off - Für diesen Chat deaktivieren\n' +
-                   '!transcription global on - Global aktivieren\n' +
-                   '!transcription global off - Global deaktivieren',
+      '!transcription on - Für diesen Chat aktivieren\n' +
+      '!transcription off - Für diesen Chat deaktivieren\n' +
+      '!transcription global on - Global aktivieren\n' +
+      '!transcription global off - Global deaktivieren',
     settingsUsageError: '❌ Verwendung: !transcription global <on|off>',
     settingsInvalidOption: '❌ Verwendung: !transcription <on|off|global on|global off>',
 
@@ -125,6 +139,14 @@ const translations = {
     globalDisabled: '❌ Globale automatische Transkription für alle Chats deaktiviert.',
     chatEnabled: '✅ Automatische Transkription für diesen Chat aktiviert.',
     chatDisabled: '❌ Automatische Transkription für diesen Chat deaktiviert.',
+
+    // Admin chat
+    adminChatStatus: (chatId) => chatId
+      ? `🔧 *Admin-Chat*\n\nAktueller Admin-Chat: ${chatId}\n\nAlle Bot-Antworten (außer Transkriptionen) werden hierher umgeleitet.`
+      : '🔧 *Admin-Chat*\n\nKein Admin-Chat konfiguriert.\nBot-Antworten erscheinen im selben Chat wie die Befehle.',
+    adminChatSet: '✅ Dieser Chat ist jetzt der Admin-Chat.\n\nAlle Bot-Antworten (außer Transkriptionen) werden hierher gesendet.',
+    adminChatCleared: '✅ Admin-Chat entfernt.\n\nBot-Antworten erscheinen jetzt im selben Chat wie die Befehle.',
+    adminChatUsage: '❌ Verwendung:\n!admin - Zeige aktuellen Admin-Chat\n!admin set - Diesen Chat als Admin-Chat setzen\n!admin clear - Admin-Chat-Einschränkung entfernen',
   },
 
   it: {
@@ -136,9 +158,9 @@ const translations = {
 
     // Authorization
     unauthorized: '👋 Ciao! Grazie per il tuo messaggio.\n\n' +
-                  'Questo è un bot automatico che aiuta con varie attività, ' +
-                  'ma l\'accesso è riservato agli utenti autorizzati.\n\n' +
-                  'Buona giornata!',
+      'Questo è un bot automatico che aiuta con varie attività, ' +
+      'ma l\'accesso è riservato agli utenti autorizzati.\n\n' +
+      'Buona giornata!',
 
     // Commands
     unknownCommand: (cmd) => `❌ Comando sconosciuto: !${cmd}\n\nScrivi !help per vedere tutti i comandi disponibili.`,
@@ -146,7 +168,10 @@ const translations = {
     // Help command
     helpTitle: '🤖 *Guida del Bot*\n\n',
     helpCommands: '*Comandi disponibili:*\n',
-    helpCommandHelp: '!help - Mostra questo messaggio di aiuto\n\n',
+    helpCommandHelp: '!help - Mostra questo messaggio di aiuto\n',
+    helpChatId: '!chatid - Mostra l\'ID della chat\n',
+    helpPlugins: '!plugins - Gestisci i plugin (On/Off)\n',
+    helpAdmin: '!admin - Impostazioni chat admin\n\n',
 
     // Transcription plugin
     transcriptionPluginName: 'Trascrizione vocale',
@@ -176,10 +201,10 @@ const translations = {
     settingsChat: (specific) => `Questa chat: ${specific === undefined ? '(usa l\'impostazione globale)' : (specific ? '✅ Attiva' : '❌ Disattiva')}\n`,
     settingsCurrent: (enabled) => `\nStato attuale: ${enabled ? '✅ Attivo' : '❌ Inattivo'}\n\n`,
     settingsUsage: '*Uso:*\n' +
-                   '!transcription on - Attiva per questa chat\n' +
-                   '!transcription off - Disattiva per questa chat\n' +
-                   '!transcription global on - Attiva globalmente\n' +
-                   '!transcription global off - Disattiva globalmente',
+      '!transcription on - Attiva per questa chat\n' +
+      '!transcription off - Disattiva per questa chat\n' +
+      '!transcription global on - Attiva globalmente\n' +
+      '!transcription global off - Disattiva globalmente',
     settingsUsageError: '❌ Uso corretto: !transcription global <on|off>',
     settingsInvalidOption: '❌ Uso corretto: !transcription <on|off|global on|global off>',
 
@@ -188,6 +213,14 @@ const translations = {
     globalDisabled: '❌ Trascrizione automatica globale disattivata per tutte le chat.',
     chatEnabled: '✅ Trascrizione automatica attivata per questa chat.',
     chatDisabled: '❌ Trascrizione automatica disattivata per questa chat.',
+
+    // Admin chat
+    adminChatStatus: (chatId) => chatId
+      ? `🔧 *Chat Admin*\n\nChat admin attuale: ${chatId}\n\nTutte le risposte del bot (tranne le trascrizioni) vengono reindirizzate qui.`
+      : '🔧 *Chat Admin*\n\nNessuna chat admin configurata.\nLe risposte del bot appaiono nella stessa chat dei comandi.',
+    adminChatSet: '✅ Questa chat è ora la chat admin.\n\nTutte le risposte del bot (tranne le trascrizioni) verranno inviate qui.',
+    adminChatCleared: '✅ Chat admin rimossa.\n\nLe risposte del bot appariranno ora nella stessa chat dei comandi.',
+    adminChatUsage: '❌ Uso:\n!admin - Mostra la chat admin attuale\n!admin set - Imposta questa chat come chat admin\n!admin clear - Rimuovi la restrizione della chat admin',
   }
 };
 

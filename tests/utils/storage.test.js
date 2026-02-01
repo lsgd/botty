@@ -131,4 +131,73 @@ describe('Storage', () => {
       assert.strictEqual(reloadedData.transcription.chatSettings[chatId].enabled, true);
     });
   });
+
+  describe('Plugin Settings', () => {
+    it('should default to plugin enabled when not set', async () => {
+      const { storage: testStorage } = await import('../../src/utils/storage.js');
+      const pluginName = 'nonexistent-plugin';
+
+      assert.strictEqual(testStorage.isPluginEnabled(pluginName), true);
+    });
+
+    it('should set and get plugin enabled state', async () => {
+      const { storage: testStorage } = await import('../../src/utils/storage.js');
+      const pluginName = 'test-plugin';
+
+      // Disable plugin
+      testStorage.setPluginEnabled(pluginName, false);
+      assert.strictEqual(testStorage.isPluginEnabled(pluginName), false);
+
+      // Enable plugin
+      testStorage.setPluginEnabled(pluginName, true);
+      assert.strictEqual(testStorage.isPluginEnabled(pluginName), true);
+    });
+  });
+
+  describe('Admin Chat Settings', () => {
+    it('should default to no admin chat', async () => {
+      const { storage: testStorage } = await import('../../src/utils/storage.js');
+
+      // Clear first to ensure clean state
+      testStorage.clearAdminChatId();
+
+      const adminChatId = testStorage.getAdminChatId();
+      assert.strictEqual(adminChatId, null);
+    });
+
+    it('should set and get admin chat ID', async () => {
+      const { storage: testStorage } = await import('../../src/utils/storage.js');
+      const chatId = 'admin-chat-123@g.us';
+
+      // Set admin chat
+      testStorage.setAdminChatId(chatId);
+      assert.strictEqual(testStorage.getAdminChatId(), chatId);
+    });
+
+    it('should clear admin chat ID', async () => {
+      const { storage: testStorage } = await import('../../src/utils/storage.js');
+      const chatId = 'admin-chat-456@g.us';
+
+      // Set and then clear
+      testStorage.setAdminChatId(chatId);
+      assert.strictEqual(testStorage.getAdminChatId(), chatId);
+
+      testStorage.clearAdminChatId();
+      assert.strictEqual(testStorage.getAdminChatId(), null);
+    });
+
+    it('should persist admin chat ID across saves', async () => {
+      const { storage: testStorage } = await import('../../src/utils/storage.js');
+      const chatId = 'persistent-admin@g.us';
+
+      testStorage.setAdminChatId(chatId);
+      testStorage.save();
+
+      const reloadedData = testStorage.load();
+      assert.strictEqual(reloadedData.adminChatId, chatId);
+
+      // Clean up
+      testStorage.clearAdminChatId();
+    });
+  });
 });

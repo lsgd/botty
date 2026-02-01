@@ -12,6 +12,9 @@ export function runProcess(command, args, options = {}) {
 
     child.stderr?.on('data', (data) => {
       stderr += data.toString();
+      if (options.onStderr) {
+        options.onStderr(data.toString());
+      }
     });
 
     child.on('error', (error) => {
