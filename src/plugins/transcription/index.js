@@ -5,6 +5,7 @@ import { messageTracker } from "./message-tracker.js";
 import { config } from "../../config.js";
 import { i18n } from "../../utils/i18n.js";
 import { responseHelper } from "../../utils/response-helper.js";
+import { logger } from "../../utils/logger.js";
 
 export class TranscriptionPlugin {
     constructor() {
@@ -50,9 +51,7 @@ export class TranscriptionPlugin {
         const isEnabled = storage.isTranscriptionEnabled(chatId);
 
         if (!isEnabled) {
-            console.log(
-                `[TranscriptionPlugin] Auto-transcription disabled for chat ${chatId}`,
-            );
+            logger.debug('Transcription', 'Auto-transcription disabled for chat', { chatId });
             return;
         }
 
@@ -94,10 +93,7 @@ export class TranscriptionPlugin {
             // Transcribe the quoted message
             await this.transcribeMessage(quotedMsg);
         } catch (error) {
-            console.error(
-                "[TranscriptionPlugin] Error handling manual transcription:",
-                error,
-            );
+            logger.errorWithStack('Transcription', 'Error handling manual transcription', error);
             await responseHelper.reply(message, i18n.t("transcribeFailed"));
         }
     }
@@ -161,21 +157,20 @@ export class TranscriptionPlugin {
 
     async transcribeMessage(message) {
         try {
-            console.log(
-                `[TranscriptionPlugin] Processing voice message ${message.id._serialized}`,
-            );
+            const messageId = message.id._serialized;
+            logger.info('Transcription', 'Processing voice message', { messageId });
 
             // Download the audio file
             const media = await message.downloadMedia();
 
             if (!media) {
-                console.error("[TranscriptionPlugin] Failed to download media");
+                logger.error('Transcription', 'Failed to download media', { messageId });
                 await responseHelper.reply(message, i18n.t("downloadFailed"));
                 return;
             }
 
             // Save to temporary file
-            const tempFileName = `audio_${message.id._serialized.replace(/[^a-zA-Z0-9]/g, "_")}.ogg`;
+            const tempFileName = `audio_${messageId.replace(/[^a-zA-Z0-9]/g, "_")}.ogg`;
             const tempFilePath = path.join(
                 config.storage.tempAudioPath,
                 tempFileName,
@@ -186,29 +181,30 @@ export class TranscriptionPlugin {
                 encoding: "base64",
             });
 
-            console.log(`[TranscriptionPlugin] Saved audio to ${tempFilePath}`);
+            logger.debug('Transcription', 'Saved audio file', { path: tempFilePath });
 
             // Use message tracker to handle transcription (handles race conditions)
             await messageTracker.transcribe(
-                message.id._serialized,
+                messageId,
                 message,
                 tempFilePath,
                 this.client,
             );
         } catch (error) {
-            console.error(
-                "[TranscriptionPlugin] Error transcribing message:",
-                error,
-            );
+            logger.errorWithStack('Transcription', 'Error transcribing message', error, {
+                messageId: message.id._serialized
+            });
             await responseHelper.reply(message, i18n.t("transcribeFailed"));
         }
     }
 
     async initialize(client) {
         this.client = client;
-        console.log("[TranscriptionPlugin] Setting up revoke event listener");
+        logger.info('Transcription', 'Setting up revoke event listener');
         client.on("message_revoke_everyone", async (message) => {
-            console.log("[TranscriptionPlugin] Revoke event triggered");
+            logger.debug('Transcription', 'Revoke event triggered', {
+                messageId: message?.id?._serialized
+            });
             await messageTracker.handleRevoke(message, client);
         });
     }

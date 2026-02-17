@@ -1,3 +1,5 @@
+import { logger } from '../utils/logger.js';
+
 export class PluginManager {
   constructor() {
     this.plugins = new Map();
@@ -16,7 +18,7 @@ export class PluginManager {
       throw new Error('Plugin must have a commands array');
     }
 
-    console.log(`Registering plugin: ${plugin.name}`);
+    logger.info('PluginManager', 'Registering plugin', { name: plugin.name });
     this.plugins.set(plugin.name, plugin);
   }
 
@@ -27,7 +29,7 @@ export class PluginManager {
           await plugin.onMessage(message);
         }
       } catch (error) {
-        console.error(`Error in plugin ${plugin.name}:`, error);
+        logger.errorWithStack('PluginManager', 'Error in plugin', error, { plugin: plugin.name });
       }
     }
   }
@@ -40,7 +42,10 @@ export class PluginManager {
           await plugin.onCommand(command, args, message);
           return true;
         } catch (error) {
-          console.error(`Error executing command ${command} in plugin ${plugin.name}:`, error);
+          logger.errorWithStack('PluginManager', 'Error executing command', error, {
+            command,
+            plugin: plugin.name
+          });
           throw error;
         }
       }

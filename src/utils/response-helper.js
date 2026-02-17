@@ -1,4 +1,5 @@
 import { storage } from './storage.js';
+import { logger } from './logger.js';
 
 /**
  * Response helper for redirecting bot responses to admin chat when configured.
@@ -37,7 +38,7 @@ class ResponseHelper {
 
         // Redirect response to admin chat
         if (!this.client) {
-            console.warn('[ResponseHelper] Client not set, falling back to direct reply');
+            logger.warn('ResponseHelper', 'Client not set, falling back to direct reply');
             return await message.reply(text);
         }
 
@@ -61,7 +62,7 @@ class ResponseHelper {
             const adminChat = await this.client.getChatById(adminChatId);
             return await adminChat.sendMessage(contextPrefix + text);
         } catch (error) {
-            console.error('[ResponseHelper] Error sending to admin chat:', error);
+            logger.error('ResponseHelper', 'Error sending to admin chat', { error: error.message });
             // Fallback to direct reply if admin chat fails
             return await message.reply(text);
         }
@@ -101,7 +102,7 @@ class ResponseHelper {
 
             return await chat.sendMessage(text);
         } catch (error) {
-            console.error('[ResponseHelper] Error sending message:', error);
+            logger.error('ResponseHelper', 'Error sending message', { error: error.message });
             throw error;
         }
     }

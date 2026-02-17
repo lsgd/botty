@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
 import { config } from '../../config.js';
-import { i18n } from '../../utils/i18n.js';
+import { logger } from '../../utils/logger.js';
 
 const openai = new OpenAI({
   apiKey: config.openai.apiKey
@@ -29,7 +29,7 @@ export class ReminderMessageGenerator {
 
       return response.choices[0].message.content.trim();
     } catch (error) {
-      console.error('[ReminderMessageGenerator] Error generating message:', error.message);
+      logger.error('ReminderMessageGenerator', 'Error generating message', { error: error.message });
       // Fallback
       return language === 'de'
         ? `🔔 Erinnerung: ${reminderText}`

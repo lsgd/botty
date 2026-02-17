@@ -1,3 +1,5 @@
+import { logger } from './logger.js';
+
 const translations = {
   en: {
     // Bot info
@@ -233,7 +235,7 @@ class I18n {
     if (translations[lang]) {
       this.currentLanguage = lang;
     } else {
-      console.warn(`Language '${lang}' not supported, falling back to English`);
+      logger.warn('i18n', 'Unsupported language, falling back to English', { lang });
       this.currentLanguage = 'en';
     }
   }
@@ -242,7 +244,7 @@ class I18n {
     const translation = translations[this.currentLanguage][key];
 
     if (!translation) {
-      console.warn(`Translation key '${key}' not found for language '${this.currentLanguage}'`);
+      logger.warn('i18n', 'Translation key not found', { key, language: this.currentLanguage });
       return key;
     }
 

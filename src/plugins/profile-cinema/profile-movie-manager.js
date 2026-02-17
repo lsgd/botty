@@ -2,6 +2,7 @@ import fs from 'fs/promises';
 import pkg from 'whatsapp-web.js';
 import { ensureReadableMovie, getMovieDuration, FrameExtractor } from './frame-extractor.js';
 import { ProfileMovieState } from './profile-movie-state.js';
+import { logger } from '../../utils/logger.js';
 
 const { MessageMedia } = pkg;
 
@@ -25,7 +26,7 @@ export class ProfileMovieManager {
     const fingerprint = `${stats.size}-${Number(stats.mtimeMs).toFixed(0)}`;
     const reset = this.stateStore.updateFingerprint(fingerprint);
     if (reset) {
-      console.log('[ProfileCinema] Movie file changed. Restarting progression.');
+      logger.info('ProfileCinema', 'Movie file changed, restarting progression');
     }
 
     this.duration = await getMovieDuration(this.options.moviePath);
@@ -34,7 +35,7 @@ export class ProfileMovieManager {
     }
 
     if (this.stateStore.isComplete(this.duration)) {
-      console.log('[ProfileCinema] Movie already finished. Sticking to last frame.');
+      logger.info('ProfileCinema', 'Movie already finished, sticking to last frame');
     }
 
     await this.stateStore.save();
@@ -57,7 +58,7 @@ export class ProfileMovieManager {
     const maxDelay = minDelay * 1.5;
     const delay = Math.floor(minDelay + Math.random() * (maxDelay - minDelay));
 
-    console.log(`[ProfileCinema] Scheduling update in ${(delay / 1000).toFixed(1)}s (Debounce)`);
+    logger.debug('ProfileCinema', 'Scheduling update', { delaySeconds: (delay / 1000).toFixed(1) });
 
     this.updateTimeout = setTimeout(() => {
       this.queueFrameAdvance();
@@ -71,13 +72,13 @@ export class ProfileMovieManager {
     this.updateQueue = this.updateQueue
       .then(() => this.advanceFrameSafely())
       .catch((error) => {
-        console.error('[ProfileCinema] Failed to advance frame:', error.message);
+        logger.error('ProfileCinema', 'Failed to advance frame', { error: error.message });
       });
   }
 
   async advanceFrameSafely() {
     if (this.stateStore.isComplete(this.duration)) {
-      console.log('[ProfileCinema] Movie completed. Skipping advance.');
+      logger.debug('ProfileCinema', 'Movie completed, skipping advance');
       return;
     }
 
@@ -98,7 +99,10 @@ export class ProfileMovieManager {
       await this.client.setProfilePicture(media);
       this.stateStore.advanceTo(nextTimeSeconds);
       await this.stateStore.save();
-      console.log(`[ProfileCinema] Updated profile to second ${nextTimeSeconds}/${this.duration}`);
+      logger.info('ProfileCinema', 'Updated profile picture', {
+        currentSecond: nextTimeSeconds,
+        totalDuration: this.duration
+      });
     } finally {
       await this.frameExtractor.cleanup(frame.filePath);
     }
@@ -108,7 +112,7 @@ export class ProfileMovieManager {
     const targetTime = Math.max(0, Math.min(timestampSeconds, this.duration));
     this.stateStore.advanceTo(targetTime);
     await this.stateStore.save();
-    console.log(`[ProfileCinema] Seeked to ${targetTime}s`);
+    logger.info('ProfileCinema', 'Seeked to timestamp', { targetSeconds: targetTime });
   }
 
   getStatus() {

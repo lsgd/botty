@@ -1,43 +1,43 @@
 import { WhatsAppBot } from './bot.js';
 import { config } from './config.js';
+import { logger } from './utils/logger.js';
 
 // Validate required environment variables
 if (!config.openai.apiKey) {
-  console.error('❌ ERROR: OPENAI_API_KEY environment variable is required');
+  logger.error('Startup', 'OPENAI_API_KEY environment variable is required');
   process.exit(1);
 }
 
 if (config.auth.authorizedNumbers.length === 0) {
-  console.warn('⚠️  WARNING: No authorized numbers configured. Set AUTHORIZED_NUMBERS environment variable.');
-  console.warn('⚠️  Example: AUTHORIZED_NUMBERS="+1234567890,+0987654321"');
+  logger.warn('Startup', 'No authorized numbers configured', {
+    hint: 'Set AUTHORIZED_NUMBERS environment variable, e.g. "+1234567890,+0987654321"'
+  });
 }
 
 // Print timezone information
-console.log(`🌍 Timezone: ${config.scheduler.timezone}`);
-if (process.env.BOT_TIMEZONE) {
-  console.log(`   (configured via BOT_TIMEZONE environment variable)`);
-} else {
-  console.log(`   (auto-detected from system)`);
-}
+logger.info('Startup', 'Timezone configured', {
+  timezone: config.scheduler.timezone,
+  source: process.env.BOT_TIMEZONE ? 'BOT_TIMEZONE env var' : 'auto-detected'
+});
 
 // Create and initialize bot
 const bot = new WhatsAppBot();
 
 // Handle shutdown gracefully
 process.on('SIGINT', async () => {
-  console.log('\n🛑 Shutting down...');
+  logger.info('Startup', 'Received SIGINT, shutting down');
   await bot.destroy();
   process.exit(0);
 });
 
 process.on('SIGTERM', async () => {
-  console.log('\n🛑 Shutting down...');
+  logger.info('Startup', 'Received SIGTERM, shutting down');
   await bot.destroy();
   process.exit(0);
 });
 
 // Start bot
 bot.initialize().catch((error) => {
-  console.error('❌ Failed to initialize bot:', error);
+  logger.errorWithStack('Startup', 'Failed to initialize bot', error);
   process.exit(1);
 });

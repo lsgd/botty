@@ -2,6 +2,7 @@ import cron from 'node-cron';
 import { DateTime } from 'luxon';
 import { ReminderMessageGenerator } from './message-generator.js';
 import { config } from '../../config.js';
+import { logger } from '../../utils/logger.js';
 
 export class ReminderScheduler {
   constructor(storage, client) {
@@ -16,21 +17,25 @@ export class ReminderScheduler {
   }
 
   async start() {
-    console.log('[ReminderScheduler] Starting reminder scheduler...');
+    logger.info('ReminderScheduler', 'Starting reminder scheduler');
 
     const cronExpression = `0 ${this.checkHour} * * *`;
     this.cronJob = cron.schedule(
       cronExpression,
       async () => {
-        console.log('[ReminderScheduler] Running daily check...');
-        await this.checkTodaysReminders();
+        try {
+          logger.info('ReminderScheduler', 'Running daily check');
+          await this.checkTodaysReminders();
+        } catch (error) {
+          logger.errorWithStack('ReminderScheduler', 'Error in daily check', error);
+        }
       },
       { timezone: this.timezone }
     );
 
     await this.checkTodaysReminders();
 
-    console.log('[ReminderScheduler] ✅ Reminder scheduler started successfully');
+    logger.info('ReminderScheduler', 'Reminder scheduler started successfully');
   }
 
   stop() {
@@ -48,7 +53,10 @@ export class ReminderScheduler {
     const today = this.getTodayDateString();
     const todaysReminders = this.storage.getByDate(today);
 
-    console.log(`[ReminderScheduler] Found ${todaysReminders.length} reminders for today (${today})`);
+    logger.info('ReminderScheduler', 'Found reminders for today', {
+      count: todaysReminders.length,
+      date: today
+    });
 
     for (const reminder of todaysReminders) {
       await this.scheduleReminder(reminder);
@@ -58,7 +66,7 @@ export class ReminderScheduler {
   async scheduleReminder(reminder) {
     // Check if already scheduled
     if (this.scheduledReminders.has(reminder.id)) {
-      console.log(`[ReminderScheduler] Reminder ${reminder.id} already scheduled`);
+      logger.debug('ReminderScheduler', 'Reminder already scheduled', { reminderId: reminder.id });
       return;
     }
 
@@ -76,9 +84,12 @@ export class ReminderScheduler {
 
     await this.storage.markScheduled(reminder.id, sendTime.toISO());
 
-    console.log(
-      `[ReminderScheduler] Scheduling reminder ${reminder.id} for ${sendTime.toFormat('HH:mm')} ${this.timezone} (in ${Math.round(delay / 1000)}s)`
-    );
+    logger.info('ReminderScheduler', 'Scheduling reminder', {
+      reminderId: reminder.id,
+      sendTime: sendTime.toFormat('HH:mm'),
+      timezone: this.timezone,
+      delaySeconds: Math.round(delay / 1000)
+    });
 
     const timeout = setTimeout(async () => {
       await this.sendReminder(reminder);
@@ -90,7 +101,10 @@ export class ReminderScheduler {
 
   async sendReminder(reminder) {
     try {
-      console.log(`[ReminderScheduler] Sending reminder ${reminder.id} to ${reminder.chatId}`);
+      logger.info('ReminderScheduler', 'Sending reminder', {
+        reminderId: reminder.id,
+        chatId: reminder.chatId
+      });
 
       // Generate nice message using GPT
       const message = await ReminderMessageGenerator.generate(
@@ -101,12 +115,15 @@ export class ReminderScheduler {
       // Send to chat
       await this.client.sendMessage(reminder.chatId, message);
 
-      console.log(`[ReminderScheduler] ✅ Reminder ${reminder.id} sent successfully`);
+      logger.info('ReminderScheduler', 'Reminder sent successfully', { reminderId: reminder.id });
 
       // Remove from storage
       await this.storage.remove(reminder.id);
     } catch (error) {
-      console.error(`[ReminderScheduler] Error sending reminder ${reminder.id}:`, error.message);
+      logger.error('ReminderScheduler', 'Error sending reminder', {
+        reminderId: reminder.id,
+        error: error.message
+      });
     }
   }
 

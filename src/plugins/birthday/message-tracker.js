@@ -2,6 +2,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { DateTime } from 'luxon';
 import { config } from '../../config.js';
+import { logger } from '../../utils/logger.js';
 
 /**
  * Tracks messages from authorized users per chat per day
@@ -62,7 +63,7 @@ export class DailyMessageTracker {
     }
     this.persistPromise = this.persist()
       .catch(error => {
-        console.error('[DailyMessageTracker] Failed to persist tracker state:', error.message);
+        logger.error('DailyMessageTracker', 'Failed to persist tracker state', { error: error.message });
       })
       .finally(() => {
         this.persistPromise = null;
@@ -135,9 +136,8 @@ export class DailyMessageTracker {
     const dates = this.chatMessages.get(chatId);
     if (!dates) return;
 
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - 7);
-    const cutoffString = cutoff.toISOString().split('T')[0];
+    const cutoff = DateTime.now().setZone(config.scheduler.timezone).minus({ days: 7 });
+    const cutoffString = cutoff.toISODate();
 
     const toDelete = [];
     for (const date of dates) {

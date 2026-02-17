@@ -2,6 +2,7 @@ import fs from 'fs-extra';
 import { parse } from 'csv-parse/sync';
 import { DateTime } from 'luxon';
 import { config } from '../../config.js';
+import { logger } from '../../utils/logger.js';
 
 export class BirthdayCSVLoader {
   /**
@@ -11,10 +12,10 @@ export class BirthdayCSVLoader {
    * @returns {Array} Array of valid birthday entries
    */
   static async load(filePath, client = null) {
-    console.log(`[BirthdayCSV] Loading birthdays from ${filePath}`);
+    logger.info('BirthdayCSV', 'Loading birthdays', { filePath });
 
     if (!fs.existsSync(filePath)) {
-      console.warn(`[BirthdayCSV] File not found: ${filePath}`);
+      logger.warn('BirthdayCSV', 'File not found', { filePath });
       return [];
     }
 
@@ -29,7 +30,7 @@ export class BirthdayCSVLoader {
         trim: true
       });
 
-      console.log(`[BirthdayCSV] Loaded ${records.length} entries from CSV`);
+      logger.debug('BirthdayCSV', 'Loaded entries from CSV', { count: records.length });
 
       // Validate and filter entries
       const validBirthdays = [];
@@ -48,21 +49,25 @@ export class BirthdayCSVLoader {
         }
       }
 
-      // Print errors
+      // Log errors
       if (errors.length > 0) {
-        console.error(`\n[BirthdayCSV] ❌ Found ${errors.length} invalid entries:\n`);
         errors.forEach(({ line, errors: errs, record }) => {
-          console.error(`  Line ${line} (${record.personName || 'unknown'}):`);
-          errs.forEach(err => console.error(`    - ${err}`));
+          logger.warn('BirthdayCSV', 'Invalid entry', {
+            line,
+            personName: record.personName || 'unknown',
+            errors: errs
+          });
         });
-        console.error('');
       }
 
-      console.log(`[BirthdayCSV] ✅ Successfully loaded ${validBirthdays.length} valid birthdays`);
+      logger.info('BirthdayCSV', 'Successfully loaded birthdays', {
+        valid: validBirthdays.length,
+        invalid: errors.length
+      });
 
       return validBirthdays;
     } catch (error) {
-      console.error(`[BirthdayCSV] Error loading CSV:`, error);
+      logger.errorWithStack('BirthdayCSV', 'Error loading CSV', error);
       return [];
     }
   }

@@ -3,6 +3,7 @@ import { AuthMiddleware } from '../../middleware/auth.js';
 import { storage } from '../../utils/storage.js';
 import { ProfileMovieManager } from './profile-movie-manager.js';
 import { responseHelper } from '../../utils/response-helper.js';
+import { logger } from '../../utils/logger.js';
 import pkg from 'whatsapp-web.js';
 const { MessageMedia } = pkg;
 
@@ -30,7 +31,7 @@ export class ProfileCinemaPlugin {
 
   async initialize(client) {
     if (!config.profileMovie.enabled) {
-      console.log('[ProfileCinema] Disabled (no PROFILE_MOVIE_PATH provided)');
+      logger.info('ProfileCinema', 'Disabled (no PROFILE_MOVIE_PATH provided)');
       return;
     }
 
@@ -38,9 +39,9 @@ export class ProfileCinemaPlugin {
     try {
       await this.manager.initialize();
       this.enabled = true;
-      console.log('[ProfileCinema] ✅ Ready');
+      logger.info('ProfileCinema', 'Ready');
     } catch (error) {
-      console.error('[ProfileCinema] Failed to start:', error.message);
+      logger.error('ProfileCinema', 'Failed to start', { error: error.message });
     }
   }
 
@@ -145,7 +146,7 @@ export class ProfileCinemaPlugin {
       await this.manager.frameExtractor.cleanup(frameData.filePath);
       return true;
     } catch (error) {
-      console.error('[ProfileCinema] Error getting frame:', error);
+      logger.errorWithStack('ProfileCinema', 'Error getting frame', error);
       await responseHelper.reply(message, '❌ Failed to extract current frame.');
       return true;
     }

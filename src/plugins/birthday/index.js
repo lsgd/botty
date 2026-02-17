@@ -6,6 +6,7 @@ import { BirthdayScheduler } from './birthday-scheduler.js';
 import { dailyMessageTracker } from './message-tracker.js';
 import { storage } from '../../utils/storage.js';
 import { responseHelper } from '../../utils/response-helper.js';
+import { logger } from '../../utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -63,7 +64,7 @@ export class BirthdayPlugin {
     this.scheduler = new BirthdayScheduler(client, birthdayFilePath);
     await this.scheduler.start();
 
-    console.log('[BirthdayPlugin] ✅ Birthday plugin initialized');
+    logger.info('BirthdayPlugin', 'Birthday plugin initialized');
   }
 
   /**
@@ -161,7 +162,7 @@ export class BirthdayPlugin {
 
       await responseHelper.reply(message, statusText);
     } catch (error) {
-      console.error('[BirthdayPlugin] Error in status command:', error);
+      logger.errorWithStack('BirthdayPlugin', 'Error in status command', error);
       await responseHelper.reply(message,
         i18n.currentLanguage === 'de'
           ? '❌ Fehler beim Abrufen der Geburtstage'
@@ -193,7 +194,7 @@ export class BirthdayPlugin {
           : `✅ CSV reloaded!\n\nBirthdays: ${status.totalBirthdays}\nToday: ${status.todaysBirthdays}`
       );
     } catch (error) {
-      console.error('[BirthdayPlugin] Error in reload command:', error);
+      logger.errorWithStack('BirthdayPlugin', 'Error in reload command', error);
       await responseHelper.reply(message,
         i18n.currentLanguage === 'de'
           ? '❌ Fehler beim Neuladen der CSV'
@@ -268,9 +269,12 @@ export class BirthdayPlugin {
 
       await responseHelper.reply(message, responseText);
 
-      console.log(`[BirthdayPlugin] Test message generated for ${birthday.firstName} ${birthday.lastName}`);
+      logger.info('BirthdayPlugin', 'Test message generated', {
+        firstName: birthday.firstName,
+        lastName: birthday.lastName
+      });
     } catch (error) {
-      console.error('[BirthdayPlugin] Error in test command:', error);
+      logger.errorWithStack('BirthdayPlugin', 'Error in test command', error);
       await responseHelper.reply(message,
         i18n.currentLanguage === 'de'
           ? '❌ Fehler beim Generieren der Testnachricht'

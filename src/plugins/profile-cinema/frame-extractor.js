@@ -5,6 +5,7 @@ import { randomUUID } from 'crypto';
 import ffmpeg from 'ffmpeg-static';
 import { runProcess } from './process-utils.js';
 import ffprobe from 'ffprobe-static';
+import { logger } from '../../utils/logger.js';
 
 const ffmpegPath = typeof ffmpeg === 'string' ? ffmpeg : ffmpeg?.path;
 
@@ -61,7 +62,7 @@ export class FrameExtractor {
     ];
 
     await runProcess(ffmpegPath, args, {
-      onStderr: (data) => console.log(`[FFmpeg] ${data}`)
+      onStderr: (data) => logger.debug('FFmpeg', data.trim())
     });
   }
 

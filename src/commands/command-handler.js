@@ -7,7 +7,7 @@ import { responseHelper } from '../utils/response-helper.js';
 
 export class CommandHandler {
   static async handle(message) {
-    const body = message.body.trim();
+    const body = (message.body || '').trim();
 
     // Check if it's a command (starts with !)
     if (!body.startsWith('!') && !body.startsWith('! ')) {

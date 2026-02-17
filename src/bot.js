@@ -4,6 +4,7 @@ import qrcode from 'qrcode-terminal';
 import { config } from './config.js';
 import { storage } from './utils/storage.js';
 import { i18n } from './utils/i18n.js';
+import { logger } from './utils/logger.js';
 import { pluginManager } from './plugins/plugin-manager.js';
 import { CommandHandler } from './commands/command-handler.js';
 import { TranscriptionPlugin } from './plugins/transcription/index.js';
@@ -25,11 +26,11 @@ export class WhatsAppBot {
   }
 
   async initialize() {
-    console.log('🚀 Initializing WhatsApp Bot...');
+    logger.info('Bot', 'Initializing WhatsApp Bot');
 
     // Set language from config
     i18n.setLanguage(config.language);
-    console.log(`Language set to: ${config.language}`);
+    logger.info('Bot', 'Language configured', { language: config.language });
 
     // Create WhatsApp client with authentication
     const clientConfig = {
@@ -70,19 +71,19 @@ export class WhatsAppBot {
   registerEventHandlers() {
     // QR Code generation
     this.client.on('qr', (qr) => {
-      console.log('\n📱 Scan this QR code with WhatsApp:\n');
+      logger.info('Bot', 'QR code generated, scan with WhatsApp');
       qrcode.generate(qr, { small: true });
-      console.log('\nWaiting for authentication...\n');
+      logger.info('Bot', 'Waiting for authentication');
     });
 
     // Authentication success
     this.client.on('authenticated', () => {
-      console.log(i18n.t('authenticated'));
+      logger.info('Bot', 'Authentication successful');
     });
 
     // Ready
     this.client.on('ready', async () => {
-      console.log(i18n.t('botReady'));
+      logger.info('Bot', 'WhatsApp client ready');
       this.isReady = true;
       this.logBotInfo();
 
@@ -124,216 +125,176 @@ export class WhatsAppBot {
 
     // Disconnected
     this.client.on('disconnected', (reason) => {
-      console.log('❌ WhatsApp Bot disconnected:', reason);
+      logger.warn('Bot', 'WhatsApp Bot disconnected', { reason });
       this.isReady = false;
     });
 
     // Authentication failure
     this.client.on('auth_failure', (msg) => {
-      console.error('❌ Authentication failed:', msg);
+      logger.error('Bot', 'Authentication failed', { message: msg });
       process.exit(1);
     });
   }
 
   registerDebugHandlers() {
-    console.log('🔍 Registering debug event handlers...');
+    logger.debug('Bot', 'Registering debug event handlers');
 
     // Authentication & Connection Events
     this.client.on('code', (code) => {
-      console.log('[WhatsAppBot] 🔐 Event: code -', code);
+      logger.debug('Bot', 'Event: code', { code });
     });
 
     this.client.on('loading_screen', (percent, message) => {
-      console.log(`[WhatsAppBot] 🔐 Event: loading_screen - ${percent}% ${message}`);
+      logger.debug('Bot', 'Event: loading_screen', { percent, message });
     });
 
     this.client.on('remote_session_saved', () => {
-      console.log('[WhatsAppBot] 🔐 Event: remote_session_saved');
+      logger.debug('Bot', 'Event: remote_session_saved');
     });
 
     // Message Events
     this.client.on('message_ciphertext', (msg) => {
-      try {
-        console.log('[WhatsAppBot] 📝 Event: message_ciphertext', JSON.stringify(msg, null, 2));
-      } catch (error) {
-        console.log('[WhatsAppBot] 📝 Event: message_ciphertext', msg);
-      }
+      logger.debug('Bot', 'Event: message_ciphertext', { msg });
     });
 
     this.client.on('message_revoke_everyone', async (after, before) => {
-      try {
-        console.log('[WhatsAppBot] 🗑️ Event: message_revoke_everyone', {
-          after: after?.id?._serialized,
-          before: before?.id?._serialized
-        });
-      } catch (error) {
-        console.log('[WhatsAppBot] 🗑️ Event: message_revoke_everyone');
-      }
+      logger.debug('Bot', 'Event: message_revoke_everyone', {
+        afterId: after?.id?._serialized,
+        beforeId: before?.id?._serialized
+      });
     });
 
     this.client.on('message_revoke_me', async (message) => {
-      try {
-        console.log('[WhatsAppBot] 🗑️ Event: message_revoke_me', message?.id?._serialized);
-      } catch (error) {
-        console.log('[WhatsAppBot] 🗑️ Event: message_revoke_me');
-      }
+      logger.debug('Bot', 'Event: message_revoke_me', {
+        messageId: message?.id?._serialized
+      });
     });
 
     this.client.on('message_ack', (message, ack) => {
-      // ack: -1 = error, 0 = pending, 1 = sent, 2 = delivered, 3 = read, 4 = played
       const ackStatus = ['error', 'pending', 'sent', 'delivered', 'read', 'played'][ack + 1] || ack;
-      console.log(`[WhatsAppBot] ✓ Event: message_ack - ${message?.id?._serialized} -> ${ackStatus}`);
+      logger.debug('Bot', 'Event: message_ack', {
+        messageId: message?.id?._serialized,
+        status: ackStatus
+      });
     });
 
     this.client.on('message_edit', (message, newBody, prevBody) => {
-      console.log(`[WhatsAppBot] ✏️ Event: message_edit - ${message?.id?._serialized}`, {
-        from: prevBody,
-        to: newBody
+      logger.debug('Bot', 'Event: message_edit', {
+        messageId: message?.id?._serialized,
+        prevBody,
+        newBody
       });
     });
 
     this.client.on('message_reaction', (reaction) => {
-      try {
-        console.log('[WhatsAppBot] 👍 Event: message_reaction', {
-          messageId: reaction?.msgId?._serialized,
-          reaction: reaction?.reaction,
-          senderId: reaction?.senderId
-        });
-      } catch (error) {
-        console.log('[WhatsAppBot] 👍 Event: message_reaction', reaction);
-      }
+      logger.debug('Bot', 'Event: message_reaction', {
+        messageId: reaction?.msgId?._serialized,
+        reaction: reaction?.reaction,
+        senderId: reaction?.senderId
+      });
     });
 
     this.client.on('media_uploaded', (message) => {
-      console.log(`[WhatsAppBot] 📎 Event: media_uploaded - ${message?.id?._serialized}`);
+      logger.debug('Bot', 'Event: media_uploaded', {
+        messageId: message?.id?._serialized
+      });
     });
 
     this.client.on('unread_count', (chat) => {
-      try {
-        console.log(`[WhatsAppBot] 📬 Event: unread_count - ${chat?.id?._serialized}: ${chat?.unreadCount}`);
-      } catch (error) {
-        console.log('[WhatsAppBot] 📬 Event: unread_count');
-      }
+      logger.debug('Bot', 'Event: unread_count', {
+        chatId: chat?.id?._serialized,
+        unreadCount: chat?.unreadCount
+      });
     });
 
     this.client.on('vote_update', (vote) => {
-      try {
-        console.log('[WhatsAppBot] 🗳️ Event: vote_update', JSON.stringify(vote, null, 2));
-      } catch (error) {
-        console.log('[WhatsAppBot] 🗳️ Event: vote_update', vote);
-      }
+      logger.debug('Bot', 'Event: vote_update', { vote });
     });
 
     // Group Events
     this.client.on('group_join', (notification) => {
-      try {
-        console.log('[WhatsAppBot] 👥 Event: group_join', {
-          chatId: notification?.chatId?._serialized,
-          who: notification?.recipientIds || notification?.author
-        });
-      } catch (error) {
-        console.log('[WhatsAppBot] 👥 Event: group_join', notification);
-      }
+      logger.debug('Bot', 'Event: group_join', {
+        chatId: notification?.chatId?._serialized,
+        who: notification?.recipientIds || notification?.author
+      });
     });
 
     this.client.on('group_leave', (notification) => {
-      try {
-        console.log('[WhatsAppBot] 🚪 Event: group_leave', {
-          chatId: notification?.chatId?._serialized,
-          who: notification?.recipientIds || notification?.author
-        });
-      } catch (error) {
-        console.log('[WhatsAppBot] 🚪 Event: group_leave', notification);
-      }
+      logger.debug('Bot', 'Event: group_leave', {
+        chatId: notification?.chatId?._serialized,
+        who: notification?.recipientIds || notification?.author
+      });
     });
 
     this.client.on('group_update', (notification) => {
-      try {
-        console.log('[WhatsAppBot] ⚙️ Event: group_update', {
-          chatId: notification?.chatId?._serialized,
-          author: notification?.author,
-          type: notification?.type
-        });
-      } catch (error) {
-        console.log('[WhatsAppBot] ⚙️ Event: group_update', notification);
-      }
+      logger.debug('Bot', 'Event: group_update', {
+        chatId: notification?.chatId?._serialized,
+        author: notification?.author,
+        type: notification?.type
+      });
     });
 
     this.client.on('group_admin_changed', (notification) => {
-      try {
-        console.log('[WhatsAppBot] 👑 Event: group_admin_changed', {
-          chatId: notification?.chatId?._serialized,
-          who: notification?.recipientIds,
-          type: notification?.type
-        });
-      } catch (error) {
-        console.log('[WhatsAppBot] 👑 Event: group_admin_changed', notification);
-      }
+      logger.debug('Bot', 'Event: group_admin_changed', {
+        chatId: notification?.chatId?._serialized,
+        who: notification?.recipientIds,
+        type: notification?.type
+      });
     });
 
     this.client.on('group_membership_request', (notification) => {
-      try {
-        console.log('[WhatsAppBot] 🚪 Event: group_membership_request', {
-          chatId: notification?.chatId?._serialized,
-          author: notification?.author
-        });
-      } catch (error) {
-        console.log('[WhatsAppBot] 🚪 Event: group_membership_request', notification);
-      }
+      logger.debug('Bot', 'Event: group_membership_request', {
+        chatId: notification?.chatId?._serialized,
+        author: notification?.author
+      });
     });
 
     // Chat Events
     this.client.on('chat_removed', (chat) => {
-      console.log(`[WhatsAppBot] 📁 Event: chat_removed - ${chat?.id?._serialized}`);
+      logger.debug('Bot', 'Event: chat_removed', {
+        chatId: chat?.id?._serialized
+      });
     });
 
     this.client.on('chat_archived', (chat, currState, prevState) => {
-      console.log(`[WhatsAppBot] 🗂️ Event: chat_archived - ${chat?.id?._serialized}: ${prevState} -> ${currState}`);
+      logger.debug('Bot', 'Event: chat_archived', {
+        chatId: chat?.id?._serialized,
+        prevState,
+        currState
+      });
     });
 
     // Device & Status Events
     this.client.on('change_state', (state) => {
-      console.log(`[WhatsAppBot] 🔌 Event: change_state - ${state}`);
+      logger.debug('Bot', 'Event: change_state', { state });
     });
 
     this.client.on('change_battery', (batteryInfo) => {
-      try {
-        console.log('[WhatsAppBot] 🔋 Event: change_battery', {
-          battery: batteryInfo?.battery,
-          plugged: batteryInfo?.plugged
-        });
-      } catch (error) {
-        console.log('[WhatsAppBot] 🔋 Event: change_battery', batteryInfo);
-      }
+      logger.debug('Bot', 'Event: change_battery', {
+        battery: batteryInfo?.battery,
+        plugged: batteryInfo?.plugged
+      });
     });
 
     this.client.on('call', (call) => {
-      try {
-        console.log('[WhatsAppBot] 📞 Event: call', {
-          id: call?.id,
-          from: call?.from,
-          isGroup: call?.isGroup,
-          isVideo: call?.isVideo
-        });
-      } catch (error) {
-        console.log('[WhatsAppBot] 📞 Event: call', call);
-      }
+      logger.debug('Bot', 'Event: call', {
+        id: call?.id,
+        from: call?.from,
+        isGroup: call?.isGroup,
+        isVideo: call?.isVideo
+      });
     });
 
     // Other Events
     this.client.on('contact_changed', (message, oldId, newId, isContact) => {
-      console.log('[WhatsAppBot] 👤 Event: contact_changed', {
-        oldId,
-        newId,
-        isContact
-      });
+      logger.debug('Bot', 'Event: contact_changed', { oldId, newId, isContact });
     });
 
-    console.log('✅ Debug event handlers registered');
+    logger.debug('Bot', 'Debug event handlers registered');
   }
 
   registerPlugins() {
-    console.log('📦 Registering plugins...');
+    logger.info('Bot', 'Registering plugins');
 
     // Register transcription plugin
     this.transcriptionPlugin = new TranscriptionPlugin();
@@ -351,7 +312,7 @@ export class WhatsAppBot {
     this.profileCinemaPlugin = new ProfileCinemaPlugin();
     pluginManager.register(this.profileCinemaPlugin);
 
-    console.log('✅ Plugins registered successfully');
+    logger.info('Bot', 'Plugins registered successfully');
   }
 
   async handleMessage(message) {
@@ -363,15 +324,21 @@ export class WhatsAppBot {
 
       // Ignore old messages
       if (message.timestamp && message.timestamp < this.startTime) {
-        console.log(`⏳ Ignoring old message from ${message.from} (ts: ${message.timestamp} < start: ${this.startTime})`);
+        logger.debug('Bot', 'Ignoring old message', {
+          from: message.from,
+          messageTimestamp: message.timestamp,
+          startTime: this.startTime
+        });
         return;
       }
 
       // Log message
-      const from = message.from;
-      const body = message.body;
-      const type = message.type;
-      console.log(`📨 Message from ${from} [${type}]: ${body || '(media)'}`);
+      logger.info('Bot', 'Message received', {
+        from: message.from,
+        type: message.type,
+        body: message.body || '(media)',
+        fromMe: message.fromMe
+      });
 
       // Check if it's a command
       const isCommand = await CommandHandler.handle(message);
@@ -383,18 +350,18 @@ export class WhatsAppBot {
       // Delegate to plugins for automatic handling
       await pluginManager.handleMessage(message);
     } catch (error) {
-      console.error('❌ Error handling message:', error);
+      logger.errorWithStack('Bot', 'Error handling message', error);
     }
   }
 
   logBotInfo() {
-    console.log('\n' + '='.repeat(50));
-    console.log('🤖 WhatsApp Transcription Bot');
-    console.log('='.repeat(50));
-    console.log(`Model: ${config.openai.model}`);
-    console.log(`Authorized Numbers: ${config.auth.authorizedNumbers.join(', ') || 'None (warning!)'}`);
-    console.log(`Global Transcription: ${storage.getGlobalTranscription() ? 'Enabled' : 'Disabled'}`);
-    console.log('='.repeat(50) + '\n');
+    logger.info('Bot', 'Bot configuration', {
+      model: config.openai.model,
+      authorizedNumbers: config.auth.authorizedNumbers.length > 0
+        ? config.auth.authorizedNumbers
+        : 'None (warning!)',
+      globalTranscription: storage.getGlobalTranscription() ? 'Enabled' : 'Disabled'
+    });
   }
 
   async destroy() {
@@ -417,7 +384,7 @@ export class WhatsAppBot {
 
     if (this.client) {
       await this.client.destroy();
-      console.log('Bot destroyed');
+      logger.info('Bot', 'Bot destroyed');
     }
   }
 }

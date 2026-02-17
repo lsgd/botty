@@ -14,7 +14,7 @@ const getTimezone = () => {
   try {
     return Intl.DateTimeFormat().resolvedOptions().timeZone;
   } catch (error) {
-    console.warn('⚠️  Could not detect system timezone, defaulting to Europe/Berlin');
+    process.stderr.write('{"level":"warn","component":"Config","message":"Could not detect system timezone, defaulting to Europe/Berlin"}\n');
     return 'Europe/Berlin';
   }
 };
@@ -48,8 +48,8 @@ export const config = {
     authorizedNumbers: process.env.AUTHORIZED_NUMBERS
       ? process.env.AUTHORIZED_NUMBERS.split(',').map(n => n.trim())
       : [],
-    // If true, the bot will not reply to unauthorized commands
-    silenceUnauthorized: process.env.SILENCE_UNAUTHORIZED === 'true' || true
+    // If true, the bot will not reply to unauthorized commands (default: true)
+    silenceUnauthorized: process.env.SILENCE_UNAUTHORIZED !== 'false'
   },
 
   // Storage

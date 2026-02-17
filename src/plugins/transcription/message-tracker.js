@@ -1,12 +1,13 @@
 import { TranscriptionService } from './transcription-service.js';
 import { i18n } from '../../utils/i18n.js';
 import { config } from '../../config.js';
+import { logger } from '../../utils/logger.js';
 
 export class MessageTracker {
   constructor() {
     this.queues = new Map(); // chatId -> Promise (tail of the queue)
     this.pending = new Map(); // messageId -> { timestamp, promise, message }
-    this.completed = new Set(); // messageId -> to avoid duplicates
+    this.completed = new Map(); // messageId -> timestamp (for cleanup)
     this.transcriptionMessages = new Map(); // audioMessageId -> { transcriptionMessage, timestamp }
     this.cancelled = new Set(); // messageIds that should not be transcribed
 
@@ -27,16 +28,16 @@ export class MessageTracker {
   async transcribe(messageId, message, audioPath, client) {
     // Check if already processed or processing
     if (this.isCompleted(messageId)) {
-      console.log(`[MessageTracker] Message ${messageId} already transcribed, skipping`);
+      logger.debug('MessageTracker', 'Message already transcribed, skipping', { messageId });
       return;
     }
 
     if (this.isProcessing(messageId)) {
-      console.log(`[MessageTracker] Message ${messageId} already being transcribed, skipping`);
+      logger.debug('MessageTracker', 'Message already being transcribed, skipping', { messageId });
       return;
     }
 
-    this.pending.add(messageId);
+    this.pending.set(messageId, true);
     const chatId = message.fromMe ? message.to : message.from;
 
     // Initialize queue for this chat if it doesn't exist
@@ -49,7 +50,7 @@ export class MessageTracker {
 
     // Chain the new task
     const processingTask = previousTask.then(async () => {
-      console.log(`[MessageTracker] Starting transcription for ${messageId}`);
+      logger.info('MessageTracker', 'Starting transcription', { messageId });
 
       const entry = {
         timestamp: Date.now(),
@@ -67,7 +68,7 @@ export class MessageTracker {
 
         // Check if transcription was cancelled during processing
         if (this.cancelled.has(messageId)) {
-          console.log(`[MessageTracker] Transcription for ${messageId} was cancelled, skipping reply`);
+          logger.info('MessageTracker', 'Transcription cancelled, skipping reply', { messageId });
           throw new Error('Transcription cancelled');
         }
 
@@ -88,14 +89,17 @@ export class MessageTracker {
             await chat.markUnread();
           }
         } catch (chatError) {
-          console.error(`[MessageTracker] Failed to mark chat as unread:`, chatError);
+          logger.error('MessageTracker', 'Failed to mark chat as unread', {
+            messageId,
+            error: chatError.message
+          });
         }
         // Mark as completed
-        this.completed.add(messageId);
+        this.completed.set(messageId, Date.now());
 
-        console.log(`[MessageTracker] Successfully transcribed ${messageId}`);
+        logger.info('MessageTracker', 'Successfully transcribed', { messageId });
       } catch (error) {
-        console.error(`[MessageTracker] Error transcribing ${messageId}:`, error);
+        logger.errorWithStack('MessageTracker', 'Error transcribing message', error, { messageId });
 
         // Try to send error message to user
         try {
@@ -104,11 +108,14 @@ export class MessageTracker {
             : i18n.t('transcriptionRetry');
           await message.reply(i18n.t('transcriptionFailed') + errorDetail);
         } catch (replyError) {
-          console.error(`[MessageTracker] Failed to send error message:`, replyError);
+          logger.error('MessageTracker', 'Failed to send error message', {
+            messageId,
+            error: replyError.message
+          });
         }
       } finally {
         // Mark as completed and remove from pending
-        this.completed.add(messageId);
+        this.completed.set(messageId, Date.now());
         this.pending.delete(messageId);
         // Clean up cancelled if present
         this.cancelled.delete(messageId);
@@ -142,25 +149,32 @@ export class MessageTracker {
   }
 
 
-  // Clean up old transcription message mappings
+  // Clean up old transcription message mappings and completed entries
   cleanupTranscriptions() {
     const now = Date.now();
     const maxAge = config.transcription.maxAgeMs;
-    const toRemove = [];
+    let removedTranscriptions = 0;
+    let removedCompleted = 0;
 
     for (const [audioId, entry] of this.transcriptionMessages) {
       if (now - entry.timestamp > maxAge) {
-        toRemove.push(audioId);
+        this.transcriptionMessages.delete(audioId);
+        removedTranscriptions++;
       }
     }
 
-    toRemove.forEach(audioId => {
-      this.transcriptionMessages.delete(audioId);
-      console.log(`[MessageTracker] Cleaned up expired transcription mapping for ${audioId}`);
-    });
+    for (const [messageId, timestamp] of this.completed) {
+      if (now - timestamp > maxAge) {
+        this.completed.delete(messageId);
+        removedCompleted++;
+      }
+    }
 
-    if (toRemove.length > 0) {
-      console.log(`[MessageTracker] Cleaned up ${toRemove.length} expired transcription mappings`);
+    if (removedTranscriptions > 0 || removedCompleted > 0) {
+      logger.info('MessageTracker', 'Cleaned up expired entries', {
+        transcriptionMappings: removedTranscriptions,
+        completedEntries: removedCompleted
+      });
     }
   }
 
@@ -187,14 +201,17 @@ export class MessageTracker {
             await entry.transcriptionMessage.delete(true); // Delete for everyone
             this.transcriptionMessages.delete(messageId);
           } catch (deleteError) {
-            console.error(`[MessageTracker] Failed to delete transcription:`, deleteError);
+            logger.error('MessageTracker', 'Failed to delete transcription', {
+              messageId,
+              error: deleteError.message
+            });
             // Still remove from map even if delete failed
             this.transcriptionMessages.delete(messageId);
           }
         }
       }
     } catch (error) {
-      console.error('[MessageTracker] Error handling message revocation:', error);
+      logger.errorWithStack('MessageTracker', 'Error handling message revocation', error);
     }
   }
 

@@ -1,12 +1,13 @@
 import OpenAI from 'openai';
 import fs from 'fs-extra';
 import { config } from '../../config.js';
+import { logger } from '../../utils/logger.js';
 
 const openai = new OpenAI({ apiKey: config.openai.apiKey });
 
 export class TranscriptionService {
   static async transcribe(audioPath, messageId) {
-    console.log(`[Transcription] Starting transcription for message ${messageId}`);
+    logger.info('TranscriptionService', 'Starting transcription', { messageId });
 
     try {
       // Check file size
@@ -17,11 +18,12 @@ export class TranscriptionService {
         throw new Error(`File size ${fileSizeMB.toFixed(2)}MB exceeds maximum ${config.transcription.maxFileSizeMB}MB`);
       }
 
-      console.log(`[Transcription] File size: ${fileSizeMB.toFixed(2)}MB`);
+      logger.debug('TranscriptionService', 'File size checked', { messageId, fileSizeMB: fileSizeMB.toFixed(2) });
 
-      // Create a timeout promise
+      // Create a clearable timeout promise
+      let timeoutId;
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Transcription timeout')), config.transcription.timeoutMs);
+        timeoutId = setTimeout(() => reject(new Error('Transcription timeout')), config.transcription.timeoutMs);
       });
 
       // Create transcription promise
@@ -40,21 +42,29 @@ export class TranscriptionService {
       const transcriptionPromise = openai.audio.transcriptions.create(transcriptionParams);
 
       // Race between transcription and timeout
-      const transcription = await Promise.race([transcriptionPromise, timeoutPromise]);
+      let transcription;
+      try {
+        transcription = await Promise.race([transcriptionPromise, timeoutPromise]);
+      } finally {
+        clearTimeout(timeoutId);
+      }
 
-      console.log(`[Transcription] Completed for message ${messageId}`);
+      logger.info('TranscriptionService', 'Transcription completed', { messageId });
 
       return transcription.text;
     } catch (error) {
-      console.error(`[Transcription] Failed for message ${messageId}:`, error.message);
+      logger.error('TranscriptionService', 'Transcription failed', { messageId, error: error.message });
       throw error;
     } finally {
       // Always clean up the audio file
       try {
         await fs.unlink(audioPath);
-        console.log(`[Transcription] Cleaned up audio file: ${audioPath}`);
+        logger.debug('TranscriptionService', 'Cleaned up audio file', { path: audioPath });
       } catch (cleanupError) {
-        console.error(`[Transcription] Failed to clean up audio file:`, cleanupError);
+        logger.error('TranscriptionService', 'Failed to clean up audio file', {
+          path: audioPath,
+          error: cleanupError.message
+        });
       }
     }
   }

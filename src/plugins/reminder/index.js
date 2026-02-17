@@ -5,6 +5,7 @@ import { ReminderScheduler } from './reminder-scheduler.js';
 import { i18n } from '../../utils/i18n.js';
 import { config } from '../../config.js';
 import { responseHelper } from '../../utils/response-helper.js';
+import { logger } from '../../utils/logger.js';
 
 export class ReminderPlugin {
   constructor() {
@@ -43,14 +44,14 @@ export class ReminderPlugin {
   }
 
   async initialize(client) {
-    console.log('[ReminderPlugin] Initializing...');
+    logger.info('ReminderPlugin', 'Initializing');
 
     await this.storage.load();
 
     this.scheduler = new ReminderScheduler(this.storage, client);
     this.scheduler.start();
 
-    console.log('[ReminderPlugin] ✅ Reminder plugin initialized');
+    logger.info('ReminderPlugin', 'Reminder plugin initialized');
   }
 
   shouldHandle(message) {

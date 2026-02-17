@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
 import { config } from '../../config.js';
+import { logger } from '../../utils/logger.js';
 
 const openai = new OpenAI({ apiKey: config.openai.apiKey });
 
@@ -30,7 +31,7 @@ export class BirthdayMessageGenerator {
         formality
       });
 
-      console.log(`[BirthdayMessage] Generating message for ${firstName} ${lastName} (${age} years)`);
+      logger.info('BirthdayMessage', 'Generating message', { firstName, lastName, age });
 
       // Call GPT-4o
       const response = await openai.chat.completions.create({
@@ -51,11 +52,11 @@ export class BirthdayMessageGenerator {
 
       const message = response.choices[0].message.content.trim();
 
-      console.log(`[BirthdayMessage] Generated message for ${firstName} ${lastName}`);
+      logger.debug('BirthdayMessage', 'Generated message', { firstName, lastName });
 
       return message;
     } catch (error) {
-      console.error(`[BirthdayMessage] Error generating message for ${firstName} ${lastName}:`, error);
+      logger.errorWithStack('BirthdayMessage', 'Error generating message', error, { firstName, lastName });
 
       // Fallback: Try again with simpler prompt, or give up
       return this.generateFallbackMessage(birthday);
@@ -179,7 +180,7 @@ export class BirthdayMessageGenerator {
 
     // Try GPT one more time with minimal prompt
     try {
-      console.log(`[BirthdayMessage] Attempting fallback generation for ${firstName} ${lastName}`);
+      logger.info('BirthdayMessage', 'Attempting fallback generation', { firstName, lastName });
 
       let simplePrompt;
       if (language === 'de') {
@@ -204,7 +205,7 @@ export class BirthdayMessageGenerator {
       return message;
     } catch (fallbackError) {
       // Last resort: return a very simple message without hardcoded age
-      console.error(`[BirthdayMessage] Fallback also failed:`, fallbackError);
+      logger.errorWithStack('BirthdayMessage', 'Fallback also failed', fallbackError);
 
       let message;
       if (language === 'de') {

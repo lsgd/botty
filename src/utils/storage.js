@@ -1,5 +1,6 @@
 import fs from 'fs-extra';
 import { config } from '../config.js';
+import { logger } from './logger.js';
 
 class Storage {
   constructor() {
@@ -13,7 +14,7 @@ class Storage {
         return fs.readJsonSync(this.configPath);
       }
     } catch (error) {
-      console.error('Error loading config:', error);
+      logger.errorWithStack('Storage', 'Error loading config', error);
     }
 
     // Default configuration
@@ -31,7 +32,7 @@ class Storage {
       fs.ensureFileSync(this.configPath);
       fs.writeJsonSync(this.configPath, this.data, { spaces: 2 });
     } catch (error) {
-      console.error('Error saving config:', error);
+      logger.errorWithStack('Storage', 'Error saving config', error);
     }
   }
 

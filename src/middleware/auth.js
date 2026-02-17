@@ -1,12 +1,13 @@
 import { config } from '../config.js';
 import { i18n } from '../utils/i18n.js';
+import { logger } from '../utils/logger.js';
 
 export class AuthMiddleware {
   static isAuthorized(message) {
     const authorizedNumbers = config.auth.authorizedNumbers;
 
     if (authorizedNumbers.length === 0) {
-      console.warn('WARNING: No authorized numbers configured. All users will be denied.');
+      logger.warn('Auth', 'No authorized numbers configured, all users will be denied');
       return false;
     }
 

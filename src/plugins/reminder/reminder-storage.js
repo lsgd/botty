@@ -1,5 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
+import { logger } from '../../utils/logger.js';
 
 export class ReminderStorage {
   constructor() {
@@ -11,11 +12,11 @@ export class ReminderStorage {
     try {
       const data = await fs.readFile(this.filePath, 'utf-8');
       this.reminders = JSON.parse(data);
-      console.log(`[ReminderStorage] Loaded ${this.reminders.length} reminders`);
+      logger.info('ReminderStorage', 'Loaded reminders', { count: this.reminders.length });
       return this.reminders;
     } catch (error) {
       if (error.code === 'ENOENT') {
-        console.log('[ReminderStorage] No reminders file found, starting fresh');
+        logger.info('ReminderStorage', 'No reminders file found, starting fresh');
         this.reminders = [];
         await this.save();
         return this.reminders;

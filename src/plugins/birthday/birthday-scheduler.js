@@ -4,6 +4,7 @@ import { BirthdayCSVLoader } from './csv-loader.js';
 import { BirthdayMessageGenerator } from './message-generator.js';
 import { dailyMessageTracker } from './message-tracker.js';
 import { config } from '../../config.js';
+import { logger } from '../../utils/logger.js';
 
 export class BirthdayScheduler {
   constructor(client, birthdayFilePath) {
@@ -22,7 +23,7 @@ export class BirthdayScheduler {
    * Start the birthday scheduler
    */
   async start() {
-    console.log('[BirthdayScheduler] Starting birthday scheduler...');
+    logger.info('BirthdayScheduler', 'Starting birthday scheduler');
 
     // Load birthdays from CSV
     await this.loadBirthdays();
@@ -35,14 +36,18 @@ export class BirthdayScheduler {
     this.cronJob = cron.schedule(
       cronExpression,
       async () => {
-        console.log('[BirthdayScheduler] Running daily birthday check...');
-        await this.loadBirthdays(); // Reload CSV in case it changed
-        await this.checkBirthdays();
+        try {
+          logger.info('BirthdayScheduler', 'Running daily birthday check');
+          await this.loadBirthdays(); // Reload CSV in case it changed
+          await this.checkBirthdays();
+        } catch (error) {
+          logger.errorWithStack('BirthdayScheduler', 'Error in daily check', error);
+        }
       },
       { timezone: this.timezone }
     );
 
-    console.log('[BirthdayScheduler] ✅ Birthday scheduler started successfully');
+    logger.info('BirthdayScheduler', 'Birthday scheduler started successfully');
   }
 
   /**
@@ -51,7 +56,7 @@ export class BirthdayScheduler {
   stop() {
     if (this.cronJob) {
       this.cronJob.stop();
-      console.log('[BirthdayScheduler] Birthday scheduler stopped');
+      logger.info('BirthdayScheduler', 'Birthday scheduler stopped');
     }
 
     // Cancel all scheduled tasks
@@ -75,11 +80,11 @@ export class BirthdayScheduler {
     const todaysBirthdays = BirthdayCSVLoader.getTodaysBirthdays(this.birthdays);
 
     if (todaysBirthdays.length === 0) {
-      console.log('[BirthdayScheduler] No birthdays today');
+      logger.info('BirthdayScheduler', 'No birthdays today');
       return;
     }
 
-    console.log(`[BirthdayScheduler] 🎉 Found ${todaysBirthdays.length} birthdays today!`);
+    logger.info('BirthdayScheduler', 'Found birthdays today', { count: todaysBirthdays.length });
 
     for (const birthday of todaysBirthdays) {
       await this.scheduleBirthdayMessage(birthday);
@@ -96,13 +101,13 @@ export class BirthdayScheduler {
 
     // Check if we already scheduled for this chat today
     if (this.scheduledTasks.has(chatId)) {
-      console.log(`[BirthdayScheduler] Already scheduled for ${personName} (${chatId})`);
+      logger.debug('BirthdayScheduler', 'Already scheduled', { personName, chatId });
       return;
     }
 
     // Check if authorized user already sent a message today
     if (dailyMessageTracker.hasMessageToday(chatId)) {
-      console.log(`[BirthdayScheduler] ⏭️  Skipping ${personName} (${chatId}) - authorized user already messaged today`);
+      logger.info('BirthdayScheduler', 'Skipping - authorized user already messaged today', { personName, chatId });
       return;
     }
 
@@ -110,9 +115,11 @@ export class BirthdayScheduler {
     const delay = this.getRandomDelayMs();
     const sendTime = DateTime.now().setZone(this.timezone).plus({ milliseconds: delay });
 
-    console.log(
-      `[BirthdayScheduler] 📅 Scheduled birthday message for ${personName} at ${sendTime.toFormat('HH:mm:ss')} ${this.timezone}`
-    );
+    logger.info('BirthdayScheduler', 'Scheduled birthday message', {
+      personName,
+      sendTime: sendTime.toFormat('HH:mm:ss'),
+      timezone: this.timezone
+    });
 
     // Schedule the message
     const timeout = setTimeout(async () => {
@@ -164,7 +171,10 @@ export class BirthdayScheduler {
     try {
       // Double-check if authorized user sent a message in the meantime
       if (dailyMessageTracker.hasMessageToday(chatId)) {
-        console.log(`[BirthdayScheduler] ⏭️  Cancelling birthday message for ${personName} - authorized user messaged in the meantime`);
+        logger.info('BirthdayScheduler', 'Cancelling birthday message - authorized user messaged in meantime', {
+          personName,
+          chatId
+        });
         return;
       }
 
@@ -174,9 +184,12 @@ export class BirthdayScheduler {
       // Send message
       await this.client.sendMessage(chatId, message);
 
-      console.log(`[BirthdayScheduler] 🎂 ✅ Sent birthday wish to ${personName} (${chatId})`);
+      logger.info('BirthdayScheduler', 'Sent birthday wish', { personName, chatId });
     } catch (error) {
-      console.error(`[BirthdayScheduler] ❌ Failed to send birthday message to ${personName} (${chatId}):`, error);
+      logger.errorWithStack('BirthdayScheduler', 'Failed to send birthday message', error, {
+        personName,
+        chatId
+      });
     }
   }
 
