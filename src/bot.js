@@ -39,15 +39,23 @@ export class WhatsAppBot {
       }),
       puppeteer: {
         headless: true,
-        args: config.whatsapp.puppeteerArgs
+        args: config.whatsapp.puppeteerArgs,
+        ...(process.env.PUPPETEER_EXECUTABLE_PATH && {
+          executablePath: process.env.PUPPETEER_EXECUTABLE_PATH
+        })
       }
     };
 
-    // Add webVersionCache if a specific version is configured
+    // Configure web version cache
     if (config.whatsapp.webVersion) {
       clientConfig.webVersionCache = {
         type: 'remote',
         remotePath: `https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/${config.whatsapp.webVersion}.html`
+      };
+    } else {
+      clientConfig.webVersionCache = {
+        type: 'local',
+        path: config.whatsapp.cachePath
       };
     }
 
@@ -64,8 +72,22 @@ export class WhatsAppBot {
     // Register plugins
     this.registerPlugins();
 
-    // Initialize client
-    await this.client.initialize();
+    // Initialize client with a startup timeout
+    logger.info('Bot', 'Launching Chromium and connecting to WhatsApp Web', {
+      executablePath: clientConfig.puppeteer.executablePath || '(bundled)',
+      args: clientConfig.puppeteer.args
+    });
+
+    const startupTimeoutMs = 300_000; // 5 minutes
+    const startupTimeout = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error(
+        `WhatsApp client initialization timed out after ${startupTimeoutMs / 1000}s — ` +
+        'Chromium may have failed to launch or WhatsApp Web failed to load. ' +
+        `Try clearing the cache: rm -rf ${config.whatsapp.cachePath}`
+      )), startupTimeoutMs);
+    });
+
+    await Promise.race([this.client.initialize(), startupTimeout]);
   }
 
   registerEventHandlers() {
