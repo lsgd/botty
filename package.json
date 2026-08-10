@@ -28,6 +28,6 @@
     "node-cron": "^4.6.0",
     "openai": "^7.4.0",
     "qrcode-terminal": "^0.12.0",
-    "whatsapp-web.js": "github:Eonus21/whatsapp-web.js#3987f1d5f505e2ebab662590b13a88a3c53447ed"
+    "whatsapp-web.js": "github:Eonus21/whatsapp-web.js#c2439e00a62051bdbc5d252ae295534716830088"
   }
 }
