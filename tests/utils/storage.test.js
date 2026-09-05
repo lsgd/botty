@@ -4,18 +4,23 @@ import fs from 'fs-extra';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { config } from '../../src/config.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Create a test storage instance
+// Use a fixture path so tests never read/write the real data/config.json
 const testConfigPath = path.join(__dirname, '../fixtures/test-config.json');
 
 describe('Storage', () => {
-  let Storage;
-  let storage;
+  let originalConfigPath;
 
   before(async () => {
+    // Point the storage singleton at the fixture path before it is imported.
+    // storage.js reads config.storage.configPath at construction time.
+    originalConfigPath = config.storage.configPath;
+    config.storage.configPath = testConfigPath;
+
     // Ensure test fixtures directory exists
     await fs.ensureDir(path.dirname(testConfigPath));
 
@@ -23,13 +28,12 @@ describe('Storage', () => {
     if (await fs.pathExists(testConfigPath)) {
       await fs.remove(testConfigPath);
     }
-
-    // Import Storage class - we'll need to mock the config path
-    // For now, let's test the actual storage with the understanding
-    // that it uses the real config path
   });
 
   after(async () => {
+    // Restore the real config path
+    config.storage.configPath = originalConfigPath;
+
     // Clean up test config
     if (await fs.pathExists(testConfigPath)) {
       await fs.remove(testConfigPath);
