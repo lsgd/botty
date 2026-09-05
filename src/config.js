@@ -20,11 +20,23 @@ const getTimezone = () => {
 };
 
 export const config = {
-  // OpenAI Configuration
-  openai: {
-    apiKey: process.env.OPENAI_API_KEY,
-    model: 'gpt-4o-transcribe',
-    temperature: 0
+  // AI Configuration
+  ai: {
+    provider: process.env.AI_PROVIDER || 'openai',
+    temperature: 0,
+    openai: {
+      apiKey: process.env.OPENAI_API_KEY,
+      transcriptionModel: process.env.OPENAI_TRANSCRIPTION_MODEL || 'gpt-4o-transcribe',
+      chatModel: process.env.OPENAI_CHAT_MODEL || 'gpt-4o'
+    },
+    openrouter: {
+      apiKey: process.env.OPENROUTER_API_KEY,
+      baseUrl: process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1',
+      httpReferer: process.env.OPENROUTER_HTTP_REFERER,
+      appTitle: process.env.OPENROUTER_APP_TITLE,
+      transcriptionModel: process.env.OPENROUTER_TRANSCRIPTION_MODEL || 'openai/whisper-large-v3',
+      chatModel: process.env.OPENROUTER_CHAT_MODEL || 'openai/gpt-4o'
+    }
   },
 
   // WhatsApp Configuration
@@ -84,7 +96,7 @@ export const config = {
   transcription: {
     maxFileSizeMB: 25,
     timeoutMs: 300000, // 5 minutes
-    defaultLanguage: null, // Auto-detect
+    defaultLanguage: process.env.TRANSCRIPTION_LANGUAGE?.toLowerCase() || null, // Auto-detect if not set
     cleanupIntervalMs: 3600000, // 1 hour
     maxAgeMs: 2592000000 // 30 days
   },

@@ -1,10 +1,5 @@
-import OpenAI from 'openai';
-import { config } from '../../config.js';
 import { logger } from '../../utils/logger.js';
-
-const openai = new OpenAI({
-  apiKey: config.openai.apiKey
-});
+import { getClient, getModel } from '../../utils/ai.js';
 
 export class ReminderMessageGenerator {
   static async generate(reminderText, language = 'en') {
@@ -17,8 +12,8 @@ export class ReminderMessageGenerator {
         ? `Formuliere eine freundliche Erinnerung für: "${reminderText}"`
         : `Format a friendly reminder for: "${reminderText}"`;
 
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4o',
+      const response = await getClient('chat').chat.completions.create({
+        model: getModel('chat'),
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }

@@ -7,6 +7,7 @@ A feature-rich WhatsApp bot that automatically transcribes voice messages using 
 ### 🎤 Voice Transcription
 - **Automatic transcription** of received and sent voice messages
 - **GPT-4o-transcribe** for high accuracy (better than Whisper)
+- **Pluggable AI provider** - use OpenAI (default) or route through **OpenRouter** (`AI_PROVIDER=openrouter`) for a wide range of models
 - **Native OGG/Opus support** (no conversion needed)
 - **Race condition handling** - multiple transcriptions processed correctly
 - **Per-chat controls** - enable/disable globally or per chat
@@ -227,6 +228,15 @@ whatsapp-bot/
 | Variable | Required | Description | Example |
 |----------|----------|-------------|---------|
 | `OPENAI_API_KEY` | Yes | OpenAI API key | `sk-proj-...` |
+| `AI_PROVIDER` | No | AI provider: `openai` (default) or `openrouter` | `openai` |
+| `OPENAI_TRANSCRIPTION_MODEL` | No | Transcription model used with the OpenAI provider | `gpt-4o-transcribe` (default) |
+| `OPENAI_CHAT_MODEL` | No | Chat model used for message generation with the OpenAI provider | `gpt-4o` (default) |
+| `OPENROUTER_API_KEY` | Only when `AI_PROVIDER=openrouter` | OpenRouter API key | `sk-or-v1-...` |
+| `OPENROUTER_BASE_URL` | No | OpenRouter-compatible API base URL (OpenAI SDK `baseURL`) | `https://openrouter.ai/api/v1` (default) |
+| `OPENROUTER_TRANSCRIPTION_MODEL` | No | OpenRouter model slug used for transcription | `openai/whisper-large-v3` (default) |
+| `OPENROUTER_CHAT_MODEL` | No | OpenRouter model slug used for message generation | `openai/gpt-4o` (default) |
+| `OPENROUTER_HTTP_REFERER` | No | Optional HTTP-Referer header sent to OpenRouter (site URL) | `https://example.com` |
+| `OPENROUTER_APP_TITLE` | No | Optional X-OpenRouter-Title header sent to OpenRouter | `WhatsApp Transcription Bot` |
 | `AUTHORIZED_NUMBERS` | Yes | Comma-separated phone numbers with country code | `+1234567890,+0987654321` |
 | `BOT_LANGUAGE` | No | Bot message language (`en`, `de`, or `it`) | `en` (default) |
 | `BOT_TIMEZONE` | No | IANA timezone identifier for all scheduling. If not set, uses system timezone | `Europe/Zurich`, `America/New_York` |
@@ -392,11 +402,20 @@ npm run test:coverage
 
 ## Technical Details
 
-### GPT-4o-transcribe
-- Model: `gpt-4o-transcribe` (latest, best accuracy)
+### AI Provider
+The bot supports two AI providers, selected with `AI_PROVIDER`:
+
+- **`openai`** (default) - talks directly to the OpenAI API using `OPENAI_API_KEY`.
+  - Transcription model: `gpt-4o-transcribe` (override with `OPENAI_TRANSCRIPTION_MODEL`)
+  - Chat model: `gpt-4o` (override with `OPENAI_CHAT_MODEL`)
+- **`openrouter`** - routes all AI calls through [OpenRouter](https://openrouter.ai) using `OPENROUTER_API_KEY`. OpenRouter reuses the OpenAI-compatible `/api/v1/audio/transcriptions` endpoint, so the same OpenAI SDK client is used with its `baseURL` pointed at `OPENROUTER_BASE_URL` (default `https://openrouter.ai/api/v1`).
+  - Model slugs are namespaced, e.g. `openai/whisper-large-v3` for transcription (override with `OPENROUTER_TRANSCRIPTION_MODEL`) and `openai/gpt-4o` for message generation (override with `OPENROUTER_CHAT_MODEL`).
+  - Optional `HTTP-Referer` and `X-OpenRouter-Title` headers are sent when `OPENROUTER_HTTP_REFERER` / `OPENROUTER_APP_TITLE` are set.
+
+Transcription requirements apply to both providers:
 - Native support for OGG/Opus format (WhatsApp's audio format)
 - No audio conversion needed
-- 25MB file size limit
+- 25MB file size limit (audio is uploaded as multipart form data)
 - 5-minute timeout per transcription
 
 ### Race Condition Handling
@@ -442,6 +461,7 @@ environment:
 
 ### Transcription Fails
 - Verify `OPENAI_API_KEY` is valid
+- When using `AI_PROVIDER=openrouter`: verify `OPENROUTER_API_KEY` is set and the model slug is namespaced (e.g. `openai/whisper-large-v3`, not bare `whisper-1`); check the exact slug against https://openrouter.ai/models
 - Check API quota/billing
 - View detailed logs for error messages
 
@@ -496,6 +516,8 @@ Check the timezone at startup in the logs:
 ```
 
 ## Cost Estimation
+
+*Prices below refer to the **default OpenAI provider** (`AI_PROVIDER=openai`). With `AI_PROVIDER=openrouter`, costs vary by the chosen model and provider — check https://openrouter.ai/models for current pricing.*
 
 GPT-4o-transcribe pricing: **$0.006 per minute** of audio
 

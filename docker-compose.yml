@@ -11,6 +11,15 @@ services:
       # OpenAI API Key (required)
       - OPENAI_API_KEY=${OPENAI_API_KEY}
 
+      # AI provider (openai or openrouter, optional, defaults to openai)
+      - AI_PROVIDER=${AI_PROVIDER:-openai}
+
+      # OpenRouter API configuration (used when AI_PROVIDER=openrouter)
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      - OPENROUTER_BASE_URL=${OPENROUTER_BASE_URL:-}
+      - OPENROUTER_TRANSCRIPTION_MODEL=${OPENROUTER_TRANSCRIPTION_MODEL:-}
+      - OPENROUTER_CHAT_MODEL=${OPENROUTER_CHAT_MODEL:-}
+
       # Authorized phone numbers (comma-separated, required)
       # Format: +1234567890,+0987654321
       - AUTHORIZED_NUMBERS=${AUTHORIZED_NUMBERS}

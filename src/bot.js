@@ -13,6 +13,7 @@ import { BirthdayPlugin } from './plugins/birthday/index.js';
 import { ReminderPlugin } from './plugins/reminder/index.js';
 import { ProfileCinemaPlugin } from './plugins/profile-cinema/index.js';
 import { responseHelper } from './utils/response-helper.js';
+import { getModel } from './utils/ai.js';
 
 export class WhatsAppBot {
   constructor() {
@@ -378,7 +379,7 @@ export class WhatsAppBot {
 
   logBotInfo() {
     logger.info('Bot', 'Bot configuration', {
-      model: config.openai.model,
+      model: getModel('chat'),
       authorizedNumbers: config.auth.authorizedNumbers.length > 0
         ? config.auth.authorizedNumbers
         : 'None (warning!)',

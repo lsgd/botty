@@ -3,8 +3,9 @@ import { config } from './config.js';
 import { logger } from './utils/logger.js';
 
 // Validate required environment variables
-if (!config.openai.apiKey) {
-  logger.error('Startup', 'OPENAI_API_KEY environment variable is required');
+if (!config.ai[config.ai.provider].apiKey) {
+  const apiKeyEnv = config.ai.provider === 'openrouter' ? 'OPENROUTER_API_KEY' : 'OPENAI_API_KEY';
+  logger.error('Startup', `${apiKeyEnv} environment variable is required`);
   process.exit(1);
 }
 

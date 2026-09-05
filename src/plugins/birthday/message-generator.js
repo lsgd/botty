@@ -1,8 +1,6 @@
-import OpenAI from 'openai';
 import { config } from '../../config.js';
 import { logger } from '../../utils/logger.js';
-
-const openai = new OpenAI({ apiKey: config.openai.apiKey });
+import { getClient, getModel } from '../../utils/ai.js';
 
 export class BirthdayMessageGenerator {
   /**
@@ -34,8 +32,8 @@ export class BirthdayMessageGenerator {
       logger.info('BirthdayMessage', 'Generating message', { firstName, lastName, age });
 
       // Call GPT-4o
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4o',
+      const response = await getClient('chat').chat.completions.create({
+        model: getModel('chat'),
         messages: [
           {
             role: 'system',
@@ -191,8 +189,8 @@ export class BirthdayMessageGenerator {
         simplePrompt = `Write a short birthday message for ${name} in English. Just 1-2 sentences. Use one emoji. No signature.`;
       }
 
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4o',
+      const response = await getClient('chat').chat.completions.create({
+        model: getModel('chat'),
         messages: [
           { role: 'user', content: simplePrompt }
         ],

@@ -1,9 +1,7 @@
-import OpenAI from 'openai';
 import fs from 'fs-extra';
 import { config } from '../../config.js';
 import { logger } from '../../utils/logger.js';
-
-const openai = new OpenAI({ apiKey: config.openai.apiKey });
+import { getClient, getModel } from '../../utils/ai.js';
 
 export class TranscriptionService {
   static async transcribe(audioPath, messageId) {
@@ -29,9 +27,9 @@ export class TranscriptionService {
       // Create transcription promise
       const transcriptionParams = {
         file: fs.createReadStream(audioPath),
-        model: config.openai.model,
+        model: getModel('transcription'),
         response_format: 'json',
-        temperature: config.openai.temperature
+        temperature: config.ai.temperature
       };
 
       // Only include language if specified (auto-detect otherwise)
@@ -39,7 +37,7 @@ export class TranscriptionService {
         transcriptionParams.language = config.transcription.defaultLanguage;
       }
 
-      const transcriptionPromise = openai.audio.transcriptions.create(transcriptionParams);
+      const transcriptionPromise = getClient('transcription').audio.transcriptions.create(transcriptionParams);
 
       // Race between transcription and timeout
       let transcription;
