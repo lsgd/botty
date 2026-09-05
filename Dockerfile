@@ -1,5 +1,6 @@
 # Use Node.js 24 with Chromium support
-FROM node:24-bullseye
+# bookworm (Debian 12) is the current stable; bullseye (Debian 11) is EOL and its apt repos have been removed
+FROM node:24-bookworm
 
 # Install Chromium and dependencies for Puppeteer
 RUN apt-get update && apt-get install -y \
